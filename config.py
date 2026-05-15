@@ -1,0 +1,19 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
+API_KEY = os.getenv("ALPACA_API_KEY")
+SECRET_KEY = os.getenv("ALPACA_SECRET_KEY")
+BASE_URL = os.getenv("ALPACA_BASE_URL", "https://paper-api.alpaca.markets")
+if not API_KEY or not SECRET_KEY:
+    raise EnvironmentError("ALPACA_API_KEY and ALPACA_SECRET_KEY must be set in .env")
+SPACE_TICKERS = ["RKLB","ASTS","LUNR","KTOS","NOC","LMT"]
+TECH_TICKERS = ["NVDA","AMD","MSFT","GOOGL","AVGO","QCOM"]
+DATACENTER_TICKERS = ["EQIX","DLR","VRT","SMCI","DELL","HPE"]
+DEFAULT_TICKERS = SPACE_TICKERS + TECH_TICKERS + DATACENTER_TICKERS
+MA_SHORT_WINDOW = 10
+MA_LONG_WINDOW = 30
+RSI_PERIOD = 14
+RSI_OVERSOLD = 30
+RSI_OVERBOUGHT = 70
+ORDER_FRACTION = 0.05
+CAMPAIGN_DAYS = 30
