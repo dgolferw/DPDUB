@@ -5,10 +5,7 @@ from utils.orders import place_market_order
 
 def check_profit_taking():
     positions = get_positions()
-    account = get_trading_client().get_account()
-    portfolio_value = float(account.portfolio_value)
     taken = []
-
     for sym, pos in positions.items():
         unreal_pct = float(pos.unrealized_plpc)
         if unreal_pct >= config.PROFIT_TAKE_PCT:
@@ -17,8 +14,7 @@ def check_profit_taking():
             if sell_qty > 0:
                 place_market_order(sym, "sell", sell_qty)
                 taken.append((sym, unreal_pct * 100, sell_qty))
-                print(f"  PROFIT TAKE: {sym} up {unreal_pct*100:.1f}% — sold half ({sell_qty} shares)")
-
+                print(f"  PROFIT TAKE: {sym} up {unreal_pct*100:.1f}% - sold half ({sell_qty} shares)")
     return taken
 
 def check_concentration(sym, qty, price, portfolio_value):

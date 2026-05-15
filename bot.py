@@ -74,7 +74,7 @@ def run_strategy(tickers, dry_run=False):
 
     # Time of day filter
     if not in_buy_window() and not dry_run:
-        print(f"  Outside buy window ({config.BUY_WINDOW_START}AM-{config.BUY_WINDOW_END}PM ET) — skipping new buys")
+        print(f"  Outside buy window ({config.BUY_WINDOW_START}AM-{config.BUY_WINDOW_END}PM ET) ï¿½ skipping new buys")
         return
 
     # Sector rotation
