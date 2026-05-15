@@ -16,6 +16,12 @@ def get_sector_performance():
             df = all_bars.get(sym)
             if df is None or df.empty or len(df) < 2:
                 continue
+            if hasattr(df.index, "names") and "symbol" in str(df.index.names):
+                df = df.reset_index()
+            if "close" not in df.columns:
+                df.columns = [c.lower() for c in df.columns]
+            if "close" not in df.columns:
+                continue
             ret = (float(df["close"].iloc[-1]) - float(df["close"].iloc[0])) / float(df["close"].iloc[0])
             returns.append(ret)
         perf[sector] = sum(returns) / len(returns) if returns else 0.0
