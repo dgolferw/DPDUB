@@ -1,12 +1,22 @@
 #!/usr/bin/env python3
 import argparse
+from datetime import datetime
+import pytz
 from tabulate import tabulate
 import config
 from utils.client import get_trading_client
 from utils.market import get_bars, get_positions, is_market_open
 from utils.orders import calc_order_qty, place_market_order, place_trailing_stop
 from utils.sector import get_active_tickers
+from utils.regime import get_market_regime
+from utils.risk import check_profit_taking, check_concentration
 from strategies.rsi import RSIMeanReversion
+
+ET = pytz.timezone("America/New_York")
+
+def in_buy_window():
+    now = datetime.now(ET)
+    return config.BUY_WINDOW_START <= now.hour < config.BUY_WINDOW_END
 
 def show_account():
     a = get_trading_client().get_account()
@@ -29,32 +39,57 @@ def show_positions():
     rows = []
     for s, p in positions.items():
         tier = 1 if s in config.TIER1 else (2 if s in config.TIER2 else 3)
-        rows.append([s, f"T{tier}", p.qty, f"${float(p.avg_entry_price):,.2f}",
-                     f"${float(p.current_price):,.2f}", f"${float(p.market_value):,.2f}",
-                     f"${float(p.unrealized_pl):,.2f}", f"{float(p.unrealized_plpc)*100:.2f}%"])
+        rows.append([s, f"T{tier}", p.qty,
+                     f"${float(p.avg_entry_price):,.2f}",
+                     f"${float(p.current_price):,.2f}",
+                     f"${float(p.market_value):,.2f}",
+                     f"${float(p.unrealized_pl):,.2f}",
+                     f"{float(p.unrealized_plpc)*100:.2f}%"])
     print("\n" + "="*80 + "\n  OPEN POSITIONS\n" + "="*80)
     print(tabulate(rows, headers=["Symbol","Tier","Qty","Avg Cost","Price","Mkt Value","Unreal P&L","P&L %"], tablefmt="simple"))
 
 def show_status():
     show_account()
     show_positions()
-    print(f"\n  Market: {'OPEN' if is_market_open() else 'CLOSED'}\n")
-    print("  Tier 1 (Essential):", ", ".join(config.TIER1))
+    print(f"\n  Market: {'OPEN' if is_market_open() else 'CLOSED'}")
+    print(f"  Buy window active: {in_buy_window()}")
+    print("\n  Tier 1 (Essential):", ", ".join(config.TIER1))
     print("  Tier 2 (Important):", ", ".join(config.TIER2))
     print("  Tier 3 (Speculative):", ", ".join(config.TIER3))
 
 def run_strategy(tickers, dry_run=False):
-    print("\nFetching sector rotation...")
+    print("\n--- Pre-run checks ---")
+
+    # Market regime
+    regime = get_market_regime()
+
+    # Profit taking check
+    print("  Checking profit taking...")
+    if not dry_run:
+        taken = check_profit_taking()
+        if taken:
+            print(f"  Took profits on {len(taken)} position(s)")
+    else:
+        print("  [DRY] Skipping profit taking check")
+
+    # Time of day filter
+    if not in_buy_window() and not dry_run:
+        print(f"  Outside buy window ({config.BUY_WINDOW_START}AM-{config.BUY_WINDOW_END}PM ET) — skipping new buys")
+        return
+
+    # Sector rotation
+    print("  Fetching sector rotation...")
     active = get_active_tickers()
     tickers = [t for t in tickers if t in active] or tickers
-    print(f"Trading {len(tickers)} tickers after sector filter")
+    print(f"  Trading {len(tickers)} tickers after sector filter")
 
     strategy = RSIMeanReversion(tickers)
     bars = get_bars(tickers, days=max(config.MA_LONG_WINDOW, config.RSI_PERIOD, config.VOLUME_MA_DAYS)+5)
-    signals = strategy.generate_signals(bars)
+    signals = strategy.generate_signals(bars, regime=regime)
 
     account = get_trading_client().get_account()
     cash = float(account.cash)
+    portfolio_value = float(account.portfolio_value)
     positions = get_positions()
     rows = []
     placed = []
@@ -67,6 +102,7 @@ def run_strategy(tickers, dry_run=False):
             if df is not None and not df.empty:
                 price = float(df["close"].iloc[-1])
                 qty = calc_order_qty(cash, price, fraction)
+                qty = check_concentration(sym, qty, price, portfolio_value)
                 if qty > 0:
                     label = "STRONG BUY" if signal == "strong_buy" else "BUY"
                     if not dry_run:
@@ -89,8 +125,10 @@ def run_strategy(tickers, dry_run=False):
                     action = f"[DRY] SELL {qty}"
         rows.append([sym, f"T{tier}", signal.upper(), f"{fraction*100:.0f}%", action])
 
+    print("\n" + "="*80)
     print(tabulate(rows, headers=["Symbol","Tier","Signal","Size","Action"], tablefmt="simple"))
     print(f"\n  {len(placed)} order(s) placed." if placed else "\n  No orders placed.")
+    print(f"  Regime: {regime.upper()}  |  Cash remaining: ${cash:,.2f}")
 
 def main():
     p = argparse.ArgumentParser()

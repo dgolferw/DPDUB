@@ -4,7 +4,7 @@ import config
 
 class RSIMeanReversion(BaseStrategy):
     name = "RSI Mean Reversion — Picks & Shovels"
-    description = "Tier-based RSI with volume confirmation, momentum filter, gap filter, and dynamic sizing."
+    description = "Tier-based RSI with volume, momentum, gap, regime, and concentration filters."
 
     def __init__(self, tickers, period=config.RSI_PERIOD):
         super().__init__(tickers)
@@ -50,26 +50,23 @@ class RSIMeanReversion(BaseStrategy):
 
     def _get_sell_rsi(self, sym):
         tier = self._get_tier(sym)
-        if tier == 1:
-            return config.TIER1_SELL_RSI
-        elif tier == 2:
-            return config.TIER2_SELL_RSI
+        if tier == 1: return config.TIER1_SELL_RSI
+        elif tier == 2: return config.TIER2_SELL_RSI
         return config.TIER3_SELL_RSI
 
     def _get_trailing_stop(self, sym):
         tier = self._get_tier(sym)
-        if tier == 1:
-            return config.TIER1_TRAILING_STOP
-        elif tier == 2:
-            return config.TIER2_TRAILING_STOP
+        if tier == 1: return config.TIER1_TRAILING_STOP
+        elif tier == 2: return config.TIER2_TRAILING_STOP
         return config.TIER3_TRAILING_STOP
 
-    def generate_signals(self, bars):
+    def generate_signals(self, bars, regime="bull"):
         signals = {}
         for sym, df in bars.items():
             if df.empty or len(df) < self.period + 1:
                 signals[sym] = ("hold", config.ORDER_FRACTION, config.TRAILING_STOP_PCT)
                 continue
+
             close = df["close"].astype(float)
             rsi = self._rsi(close)
             above_ma = self._above_20ma(close)
@@ -78,6 +75,15 @@ class RSIMeanReversion(BaseStrategy):
             sell_rsi = self._get_sell_rsi(sym)
             trail = self._get_trailing_stop(sym)
             tier = self._get_tier(sym)
+
+            # In bear market: skip Tier 3 buys, only strong signals for Tier 1/2
+            if regime == "bear":
+                if tier == 3 and sym != "SQQQ":
+                    signals[sym] = ("hold", config.ORDER_FRACTION, trail)
+                    continue
+                if tier in (1, 2) and rsi >= config.STRONG_OVERSOLD:
+                    signals[sym] = ("hold", config.ORDER_FRACTION, trail)
+                    continue
 
             if gap:
                 signals[sym] = ("hold", config.ORDER_FRACTION, trail)
@@ -94,4 +100,9 @@ class RSIMeanReversion(BaseStrategy):
                 signals[sym] = ("sell", config.ORDER_FRACTION, trail)
             else:
                 signals[sym] = ("hold", config.ORDER_FRACTION, trail)
+
+        # In bear market boost SQQQ
+        if regime == "bear" and "SQQQ" in signals:
+            signals["SQQQ"] = ("strong_buy", config.ORDER_FRACTION_TIER1_STRONG, config.TIER1_TRAILING_STOP)
+
         return signals

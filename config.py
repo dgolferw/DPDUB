@@ -15,9 +15,9 @@ HEDGE_TICKERS = ["SQQQ"]
 DEFAULT_TICKERS = SPACE_TICKERS + TECH_TICKERS + DATACENTER_TICKERS + HEDGE_TICKERS
 
 # Picks & Shovels tiers
-TIER1 = ["NVDA","EQIX","VRT","ANET","BE","VST"]   # Essential — biggest positions, wider stops
-TIER2 = ["AMD","AVGO","SMCI","DLR","NRG","MSFT","INTC","PLTR"]  # Important
-TIER3 = ["RKLB","ASTS","IONQ","LUNR","KTOS","COIN","TSLA","GEO","SQQQ","NOC","LMT","GOOGL","QCOM","DELL","HPE"]  # Speculative
+TIER1 = ["NVDA","EQIX","VRT","ANET","BE","VST"]
+TIER2 = ["AMD","AVGO","SMCI","DLR","NRG","MSFT","INTC","PLTR"]
+TIER3 = ["RKLB","ASTS","IONQ","LUNR","KTOS","COIN","TSLA","GEO","SQQQ","NOC","LMT","GOOGL","QCOM","DELL","HPE"]
 
 # RSI settings
 RSI_PERIOD = 10
@@ -45,6 +45,20 @@ TIER1_TRAILING_STOP = 6.0
 TIER2_TRAILING_STOP = 4.0
 TIER3_TRAILING_STOP = 3.0
 TRAILING_STOP_PCT = 4.0
+
+# Market regime filter
+MARKET_REGIME_TICKER = "SPY"
+MARKET_REGIME_MA = 50
+
+# Profit taking
+PROFIT_TAKE_PCT = 0.15
+
+# Position concentration
+MAX_POSITION_PCT = 0.15
+
+# Time of day - best buy window (ET hour, 24h)
+BUY_WINDOW_START = 10
+BUY_WINDOW_END = 15
 
 # Other settings
 MA_SHORT_WINDOW = 10
