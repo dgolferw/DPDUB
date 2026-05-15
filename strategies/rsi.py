@@ -3,12 +3,19 @@ from strategies.base import BaseStrategy
 import config
 
 class RSIMeanReversion(BaseStrategy):
-    name = "RSI Mean Reversion"
-    description = "RSI with volume confirmation, momentum filter, gap filter, and dynamic sizing."
+    name = "RSI Mean Reversion — Picks & Shovels"
+    description = "Tier-based RSI with volume confirmation, momentum filter, gap filter, and dynamic sizing."
 
     def __init__(self, tickers, period=config.RSI_PERIOD):
         super().__init__(tickers)
         self.period = period
+
+    def _get_tier(self, sym):
+        if sym in config.TIER1:
+            return 1
+        elif sym in config.TIER2:
+            return 2
+        return 3
 
     def _rsi(self, close):
         d = close.diff().dropna()
@@ -33,27 +40,58 @@ class RSIMeanReversion(BaseStrategy):
         open_price = float(df["open"].iloc[-1]) if "open" in df.columns else prev_close
         return (open_price - prev_close) / prev_close < -0.03
 
+    def _get_order_fraction(self, sym, signal):
+        tier = self._get_tier(sym)
+        if tier == 1:
+            return config.ORDER_FRACTION_TIER1_STRONG if signal == "strong_buy" else config.ORDER_FRACTION_TIER1_NORMAL
+        elif tier == 2:
+            return config.ORDER_FRACTION_TIER2_STRONG if signal == "strong_buy" else config.ORDER_FRACTION_TIER2_NORMAL
+        return config.ORDER_FRACTION_TIER3
+
+    def _get_sell_rsi(self, sym):
+        tier = self._get_tier(sym)
+        if tier == 1:
+            return config.TIER1_SELL_RSI
+        elif tier == 2:
+            return config.TIER2_SELL_RSI
+        return config.TIER3_SELL_RSI
+
+    def _get_trailing_stop(self, sym):
+        tier = self._get_tier(sym)
+        if tier == 1:
+            return config.TIER1_TRAILING_STOP
+        elif tier == 2:
+            return config.TIER2_TRAILING_STOP
+        return config.TIER3_TRAILING_STOP
+
     def generate_signals(self, bars):
         signals = {}
         for sym, df in bars.items():
             if df.empty or len(df) < self.period + 1:
-                signals[sym] = ("hold", config.ORDER_FRACTION)
+                signals[sym] = ("hold", config.ORDER_FRACTION, config.TRAILING_STOP_PCT)
                 continue
             close = df["close"].astype(float)
             rsi = self._rsi(close)
             above_ma = self._above_20ma(close)
             vol_ok = self._volume_confirmed(df)
             gap = self._gap_down(df)
+            sell_rsi = self._get_sell_rsi(sym)
+            trail = self._get_trailing_stop(sym)
+            tier = self._get_tier(sym)
+
             if gap:
-                signals[sym] = ("hold", config.ORDER_FRACTION)
+                signals[sym] = ("hold", config.ORDER_FRACTION, trail)
             elif rsi < config.STRONG_OVERSOLD and vol_ok:
-                signals[sym] = ("strong_buy", config.ORDER_FRACTION_STRONG)
+                frac = self._get_order_fraction(sym, "strong_buy")
+                signals[sym] = ("strong_buy", frac, trail)
             elif rsi < config.NORMAL_OVERSOLD and above_ma and vol_ok:
-                signals[sym] = ("buy", config.ORDER_FRACTION_NORMAL)
-            elif rsi < config.WEAK_OVERSOLD and above_ma and vol_ok:
-                signals[sym] = ("buy", config.ORDER_FRACTION_WEAK)
-            elif rsi > config.RSI_OVERBOUGHT:
-                signals[sym] = ("sell", config.ORDER_FRACTION)
+                frac = self._get_order_fraction(sym, "buy")
+                signals[sym] = ("buy", frac, trail)
+            elif rsi < config.WEAK_OVERSOLD and above_ma and vol_ok and tier in (1, 2):
+                frac = self._get_order_fraction(sym, "buy")
+                signals[sym] = ("buy", frac, trail)
+            elif rsi > sell_rsi:
+                signals[sym] = ("sell", config.ORDER_FRACTION, trail)
             else:
-                signals[sym] = ("hold", config.ORDER_FRACTION)
+                signals[sym] = ("hold", config.ORDER_FRACTION, trail)
         return signals

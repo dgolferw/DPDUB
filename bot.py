@@ -26,16 +26,22 @@ def show_positions():
     if not positions:
         print("\n  No open positions.\n")
         return
-    rows = [[s, p.qty, f"${float(p.avg_entry_price):,.2f}", f"${float(p.current_price):,.2f}",
-             f"${float(p.market_value):,.2f}", f"${float(p.unrealized_pl):,.2f}",
-             f"{float(p.unrealized_plpc)*100:.2f}%"] for s, p in positions.items()]
-    print("\n" + "="*70 + "\n  OPEN POSITIONS\n" + "="*70)
-    print(tabulate(rows, headers=["Symbol","Qty","Avg Cost","Price","Mkt Value","Unreal P&L","P&L %"], tablefmt="simple"))
+    rows = []
+    for s, p in positions.items():
+        tier = 1 if s in config.TIER1 else (2 if s in config.TIER2 else 3)
+        rows.append([s, f"T{tier}", p.qty, f"${float(p.avg_entry_price):,.2f}",
+                     f"${float(p.current_price):,.2f}", f"${float(p.market_value):,.2f}",
+                     f"${float(p.unrealized_pl):,.2f}", f"{float(p.unrealized_plpc)*100:.2f}%"])
+    print("\n" + "="*80 + "\n  OPEN POSITIONS\n" + "="*80)
+    print(tabulate(rows, headers=["Symbol","Tier","Qty","Avg Cost","Price","Mkt Value","Unreal P&L","P&L %"], tablefmt="simple"))
 
 def show_status():
     show_account()
     show_positions()
     print(f"\n  Market: {'OPEN' if is_market_open() else 'CLOSED'}\n")
+    print("  Tier 1 (Essential):", ", ".join(config.TIER1))
+    print("  Tier 2 (Important):", ", ".join(config.TIER2))
+    print("  Tier 3 (Speculative):", ", ".join(config.TIER3))
 
 def run_strategy(tickers, dry_run=False):
     print("\nFetching sector rotation...")
@@ -53,7 +59,8 @@ def run_strategy(tickers, dry_run=False):
     rows = []
     placed = []
 
-    for sym, (signal, fraction) in signals.items():
+    for sym, (signal, fraction, trail) in signals.items():
+        tier = 1 if sym in config.TIER1 else (2 if sym in config.TIER2 else 3)
         action = "-"
         if signal in ("buy", "strong_buy"):
             df = bars.get(sym)
@@ -64,12 +71,12 @@ def run_strategy(tickers, dry_run=False):
                     label = "STRONG BUY" if signal == "strong_buy" else "BUY"
                     if not dry_run:
                         place_market_order(sym, "buy", qty)
-                        place_trailing_stop(sym, qty)
+                        place_trailing_stop(sym, qty, trail)
                         cash -= qty * price
-                        action = f"{label} {qty} @ ~${price:.2f} +trail4%"
+                        action = f"{label} {qty} @ ~${price:.2f} trail={trail}%"
                         placed.append(sym)
                     else:
-                        action = f"[DRY] {label} {qty} @ ~${price:.2f}"
+                        action = f"[DRY] {label} {qty} @ ~${price:.2f} trail={trail}%"
         elif signal == "sell":
             pos = positions.get(sym)
             if pos:
@@ -80,9 +87,9 @@ def run_strategy(tickers, dry_run=False):
                     placed.append(sym)
                 else:
                     action = f"[DRY] SELL {qty}"
-        rows.append([sym, signal.upper(), f"{fraction*100:.0f}%", action])
+        rows.append([sym, f"T{tier}", signal.upper(), f"{fraction*100:.0f}%", action])
 
-    print(tabulate(rows, headers=["Symbol","Signal","Size","Action"], tablefmt="simple"))
+    print(tabulate(rows, headers=["Symbol","Tier","Signal","Size","Action"], tablefmt="simple"))
     print(f"\n  {len(placed)} order(s) placed." if placed else "\n  No orders placed.")
 
 def main():
