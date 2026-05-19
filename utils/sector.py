@@ -1,45 +1,54 @@
 import config
 from utils.market import get_bars
 
-def get_sector_performance():
-    all_bars = get_bars(config.DEFAULT_TICKERS, days=config.SECTOR_ROTATION_DAYS + 2)
-    sectors = {
-        "space": config.SPACE_TICKERS,
-        "tech": config.TECH_TICKERS,
-        "datacenter": config.DATACENTER_TICKERS,
-        "hedge": config.HEDGE_TICKERS,
-    }
+
+SECTORS = {
+    "space": config.SPACE_TICKERS,
+    "tech": config.TECH_TICKERS,
+    "datacenter": config.DATACENTER_TICKERS,
+    "defensive": config.DEFENSIVE_TICKERS,
+    "hedge": config.HEDGE_TICKERS,
+}
+
+PRIMARY_SECTORS = ["space", "tech", "datacenter"]
+
+
+def get_sector_performance() -> dict[str, float]:
+    bars = get_bars(config.DEFAULT_TICKERS, days=config.SECTOR_ROTATION_DAYS + 10)
     perf = {}
-    for sector, tickers in sectors.items():
+    for sector, tickers in SECTORS.items():
         returns = []
         for sym in tickers:
-            df = all_bars.get(sym)
-            if df is None or df.empty or len(df) < 2:
+            df = bars.get(sym)
+            if df is None or len(df) < 2:
                 continue
-            if hasattr(df.index, "names") and "symbol" in str(df.index.names):
-                df = df.reset_index()
-            if "close" not in df.columns:
-                df.columns = [c.lower() for c in df.columns]
-            if "close" not in df.columns:
-                continue
-            ret = (float(df["close"].iloc[-1]) - float(df["close"].iloc[0])) / float(df["close"].iloc[0])
-            returns.append(ret)
+            start = float(df["close"].iloc[-(config.SECTOR_ROTATION_DAYS + 1)])
+            end = float(df["close"].iloc[-1])
+            if start > 0:
+                returns.append((end - start) / start)
         perf[sector] = sum(returns) / len(returns) if returns else 0.0
     return perf
 
-def get_active_tickers():
+
+def get_active_tickers() -> list[str]:
+    """Return tickers from top 3 performing sectors.
+    Always includes defensive tickers when all primary sectors are negative."""
     perf = get_sector_performance()
     sorted_sectors = sorted(perf.items(), key=lambda x: x[1], reverse=True)
-    sectors = {
-        "space": config.SPACE_TICKERS,
-        "tech": config.TECH_TICKERS,
-        "datacenter": config.DATACENTER_TICKERS,
-        "hedge": config.HEDGE_TICKERS,
-    }
-    print("\nSector Performance ({}d):".format(config.SECTOR_ROTATION_DAYS))
-    active = list(config.HEDGE_TICKERS)
-    for i, (sector, ret) in enumerate(sorted_sectors):
-        print(f"  {sector:12s} {ret*100:+.2f}%")
-        if i < 3:
-            active.extend(sectors[sector])
-    return list(set(active))
+
+    active = []
+    for sector, _ in sorted_sectors[:3]:
+        active.extend(SECTORS[sector])
+
+    # Force defensive tickers in when all primary sectors are losing
+    primary_all_negative = all(perf.get(s, 0) < 0 for s in PRIMARY_SECTORS)
+    if primary_all_negative:
+        for sym in config.DEFENSIVE_TICKERS:
+            if sym not in active:
+                active.append(sym)
+
+    # Always include SQQQ as hedge
+    if "SQQQ" not in active:
+        active.append("SQQQ")
+
+    return active
