@@ -53,31 +53,21 @@ def show_status():
     show_positions()
     print(f"\n  Market: {'OPEN' if is_market_open() else 'CLOSED'}")
     print(f"  Buy window active: {in_buy_window()}")
-    print("\n  Tier 1 (Essential):", ", ".join(config.TIER1))
-    print("  Tier 2 (Important):", ", ".join(config.TIER2))
-    print("  Tier 3 (Speculative):", ", ".join(config.TIER3))
 
 def run_strategy(tickers, dry_run=False):
     print("\n--- Pre-run checks ---")
-
-    # Market regime
     regime = get_market_regime()
 
-    # Profit taking check
     print("  Checking profit taking...")
     if not dry_run:
         taken = check_profit_taking()
         if taken:
             print(f"  Took profits on {len(taken)} position(s)")
-    else:
-        print("  [DRY] Skipping profit taking check")
 
-    # Time of day filter
     if not in_buy_window() and not dry_run:
-        print(f"  Outside buy window ({config.BUY_WINDOW_START}AM-{config.BUY_WINDOW_END}PM ET) � skipping new buys")
+        print(f"  Outside buy window - skipping new buys")
         return
 
-    # Sector rotation
     print("  Fetching sector rotation...")
     active = get_active_tickers()
     tickers = [t for t in tickers if t in active] or tickers
@@ -107,9 +97,12 @@ def run_strategy(tickers, dry_run=False):
                     label = "STRONG BUY" if signal == "strong_buy" else "BUY"
                     if not dry_run:
                         place_market_order(sym, "buy", qty)
-stop_qty = int(qty)
-if stop_qty > 0:
-    place_trailing_stop(sym, stop_qty, trail)
+                        stop_qty = int(qty)
+                        if stop_qty > 0:
+                            try:
+                                place_trailing_stop(sym, stop_qty, trail)
+                            except Exception as e:
+                                print(f"  Trailing stop skipped for {sym}: {e}")
                         cash -= qty * price
                         action = f"{label} {qty} @ ~${price:.2f} trail={trail}%"
                         placed.append(sym)
