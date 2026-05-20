@@ -1,9 +1,11 @@
 name: Daily Trading Bot
 
 on:
-  schedule:
+    schedule:
     - cron: "31 13 * * 1-5"
     - cron: "30 18 * * 1-5"
+    - cron: "0 14 * * 1-5"
+    - cron: "0 17 * * 1-5"
   workflow_dispatch:
 
 jobs:
