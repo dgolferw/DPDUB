@@ -9,7 +9,7 @@ from utils.market import get_bars, get_positions, is_market_open
 from utils.orders import calc_order_qty, place_market_order, place_trailing_stop
 from utils.sector import get_active_tickers
 from utils.regime import get_market_regime
-from utils.risk import check_profit_taking, check_concentration
+from utils.risk import check_concentration, check_profit_taking, check_stop_losses
 from strategies.rsi import RSIMeanReversion
 
 ET = pytz.timezone("America/New_York")
