@@ -58,6 +58,12 @@ def run_strategy(tickers, dry_run=False):
     print("\n--- Pre-run checks ---")
     regime = get_market_regime()
 
+    print("  Checking stop losses...")
+    if not dry_run:
+        stopped = check_stop_losses()
+        if stopped:
+            print(f"  Stop loss triggered on {stopped}")
+
     print("  Checking profit taking...")
     if not dry_run:
         taken = check_profit_taking()
