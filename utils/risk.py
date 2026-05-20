@@ -24,3 +24,18 @@ def check_concentration(sym, qty, price, portfolio_value):
         max_qty = max_value / price
         return max(round(max_qty, 6), 0)
     return qty
+    
+
+def check_stop_losses(dry_run: bool = False) -> list[str]:
+    """Hard stop loss: sell entire position if down >= STOP_LOSS_PCT."""
+    positions = get_positions()
+    stopped = []
+    for sym, pos in positions.items():
+        plpc = float(pos.unrealized_plpc)
+        if plpc <= -config.STOP_LOSS_PCT:
+            qty = float(pos.qty)
+            log.info(f"STOP LOSS: {sym} down {plpc*100:.1f}% — selling {qty} shares")
+            if not dry_run:
+                place_market_order(sym, "sell", qty)
+            stopped.append(sym)
+    return stopped
