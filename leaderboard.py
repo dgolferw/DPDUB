@@ -7,6 +7,7 @@ from utils.client import get_trading_client
 from utils.market import get_positions
 
 STARTING_EQUITY = 100_000.0
+PLAYER_HANDLE = "Dodge"
 
 def build_snapshot():
     client = get_trading_client()
@@ -15,11 +16,19 @@ def build_snapshot():
     equity = float(account.equity)
     cash = float(account.cash)
     roi_pct = ((equity - STARTING_EQUITY) / STARTING_EQUITY) * 100
-    pos_list = [{"symbol": sym, "qty": float(p.qty), "market_value": float(p.market_value),
-                 "unrealized_pl": float(p.unrealized_pl), "unrealized_plpc": float(p.unrealized_plpc)}
-                for sym, p in positions.items()]
-        return {"handle": "Dodge", "timestamp": datetime.now(timezone.utc).isoformat(), "equity": equity,
-            "cash": cash, "roi_pct": round(roi_pct, 4), "positions": pos_list}
+    pos_list = [
+        {"symbol": sym, "qty": float(p.qty), "market_value": float(p.market_value),
+         "unrealized_pl": float(p.unrealized_pl), "unrealized_plpc": float(p.unrealized_plpc)}
+        for sym, p in positions.items()
+    ]
+    return {
+        "handle": PLAYER_HANDLE,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "equity": equity,
+        "cash": cash,
+        "roi_pct": round(roi_pct, 4),
+        "positions": pos_list,
+    }
 
 def post_snapshot(url, snapshot):
     data = json.dumps(snapshot).encode()
@@ -33,7 +42,8 @@ def main():
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     snapshot = build_snapshot()
-    print(f"\n  Equity: ${snapshot['equity']:,.2f}  ROI: {snapshot['roi_pct']:+.2f}%  Positions: {len(snapshot['positions'])}")
+    print(f"\n  Handle: {PLAYER_HANDLE}")
+    print(f"  Equity: ${snapshot['equity']:,.2f}  ROI: {snapshot['roi_pct']:+.2f}%  Positions: {len(snapshot['positions'])}")
     if args.dry_run or not args.url:
         print("Dry-run: not posted.")
         return
