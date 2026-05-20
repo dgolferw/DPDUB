@@ -3,7 +3,7 @@ name: Daily Trading Bot
 on:
   schedule:
     - cron: "31 13 * * 1-5"
-    - cron: "30 19 * * 1-5"
+    - cron: "30 18 * * 1-5"
   workflow_dispatch:
 
 jobs:
@@ -22,3 +22,9 @@ jobs:
           ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
           ALPACA_BASE_URL: https://paper-api.alpaca.markets
         run: python bot.py --run
+      - name: Post leaderboard snapshot
+        env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          ALPACA_BASE_URL: https://paper-api.alpaca.markets
+        run: python leaderboard.py --url https://32.194.248.231.nip.io/api/leaderboard
