@@ -18,7 +18,7 @@ def build_snapshot():
     pos_list = [{"symbol": sym, "qty": float(p.qty), "market_value": float(p.market_value),
                  "unrealized_pl": float(p.unrealized_pl), "unrealized_plpc": float(p.unrealized_plpc)}
                 for sym, p in positions.items()]
-    return {"timestamp": datetime.now(timezone.utc).isoformat(), "equity": equity,
+        return {"handle": "Dodge", "timestamp": datetime.now(timezone.utc).isoformat(), "equity": equity,
             "cash": cash, "roi_pct": round(roi_pct, 4), "positions": pos_list}
 
 def post_snapshot(url, snapshot):
