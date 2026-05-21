@@ -29,27 +29,27 @@ TIER3 = ["RKLB","ASTS","IONQ","LUNR","KTOS","COIN","TSLA","GEO","SQQQ","NOC","LM
 # RSI parameters
 # ---------------------------------------------------------------------------
 RSI_PERIOD = 10
-RSI_OVERSOLD = 45
-RSI_OVERBOUGHT = 65
+RSI_OVERSOLD = 50
+RSI_OVERBOUGHT = 70
 
 # Buy thresholds
-STRONG_OVERSOLD = 30    # triggers max position (reversal candle required)
-NORMAL_OVERSOLD = 40    # triggers normal buy (reversal candle required)
-WEAK_OVERSOLD = 45      # T1/T2 only (reversal candle required)
+STRONG_OVERSOLD = 35
+NORMAL_OVERSOLD = 50
+WEAK_OVERSOLD = 58
 
 # Sell thresholds per tier
-TIER1_SELL_RSI = 75
-TIER2_SELL_RSI = 70
-TIER3_SELL_RSI = 68
+TIER1_SELL_RSI = 78
+TIER2_SELL_RSI = 73
+TIER3_SELL_RSI = 70
 
 # ---------------------------------------------------------------------------
 # Order sizing
 # ---------------------------------------------------------------------------
-ORDER_FRACTION_TIER1_STRONG = 0.10
-ORDER_FRACTION_TIER1_NORMAL = 0.08
-ORDER_FRACTION_TIER2_STRONG = 0.08
-ORDER_FRACTION_TIER2_NORMAL = 0.07
-ORDER_FRACTION_TIER3 = 0.05
+ORDER_FRACTION_TIER1_STRONG = 0.12
+ORDER_FRACTION_TIER1_NORMAL = 0.10
+ORDER_FRACTION_TIER2_STRONG = 0.10
+ORDER_FRACTION_TIER2_NORMAL = 0.08
+ORDER_FRACTION_TIER3 = 0.06
 ORDER_FRACTION = 0.07
 
 # ---------------------------------------------------------------------------
@@ -80,7 +80,7 @@ BUY_WINDOW_END = 15
 MA_SHORT_WINDOW = 10
 MA_LONG_WINDOW = 30
 VOLUME_MA_DAYS = 20
-VOLUME_SURGE_MULT = 1.2   # reversal candle needs 1.2x avg volume
+VOLUME_SURGE_MULT = 1.2
 SECTOR_ROTATION_DAYS = 5
 STOP_LOSS_PCT = 0.05
 CAMPAIGN_DAYS = 30
