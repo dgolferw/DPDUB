@@ -3,8 +3,13 @@ import argparse
 import json
 import os
 import urllib.request
+from datetime import datetime, timezone
+from alpaca.trading.requests import GetOrdersRequest
+from alpaca.trading.enums import QueryOrderStatus
 from utils.client import get_trading_client
 from utils.market import get_positions
+
+ORDERS_AFTER = datetime(2026, 5, 12, tzinfo=timezone.utc)
 
 STARTING_EQUITY = 100_000.0
 PLAYER_HANDLE = "Dodge"
@@ -19,6 +24,10 @@ def build_snapshot():
     last_equity = float(account.last_equity) if account.last_equity else equity
     day_pnl = round(equity - last_equity, 4)
     roi_pct = ((equity - STARTING_EQUITY) / STARTING_EQUITY) * 100
+    orders = client.get_orders(GetOrdersRequest(
+        status=QueryOrderStatus.CLOSED, after=ORDERS_AFTER, limit=500
+    ))
+    trades_count = sum(1 for o in orders if o.status.value == "filled")
     pos_list = [
         {"sym": sym, "qty": float(p.qty), "mv": float(p.market_value),
          "upnl": float(p.unrealized_pl)}
@@ -29,6 +38,7 @@ def build_snapshot():
         "cash": cash,
         "day_pnl": day_pnl,
         "num_positions": len(pos_list),
+        "trades_count": trades_count,
         "positions_json": json.dumps(pos_list),
         "_handle": PLAYER_HANDLE,
         "_roi_pct": round(roi_pct, 4),
@@ -55,7 +65,8 @@ def main():
     snapshot = build_snapshot()
     print(f"\n  Handle : {snapshot['_handle']}")
     print(f"  Equity : ${snapshot['equity']:,.2f}  ROI: {snapshot['_roi_pct']:+.2f}%"
-          f"  Day P&L: ${snapshot['day_pnl']:,.2f}  Positions: {snapshot['num_positions']}")
+          f"  Day P&L: ${snapshot['day_pnl']:,.2f}  Positions: {snapshot['num_positions']}"
+          f"  Trades: {snapshot['trades_count']}")
 
     if args.dry_run or not token:
         print("Dry-run / no token: not posted.")
