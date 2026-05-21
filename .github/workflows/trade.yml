@@ -29,4 +29,5 @@ jobs:
           ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
           ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
           ALPACA_BASE_URL: https://paper-api.alpaca.markets
-        run: python leaderboard.py --url https://32.194.248.231.nip.io/api/leaderboard
+          LEADERBOARD_TOKEN: ${{ secrets.LEADERBOARD_TOKEN }}
+        run: python leaderboard.py
