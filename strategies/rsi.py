@@ -53,10 +53,14 @@ class RSIMeanReversion(BaseStrategy):
             tier = self._get_tier(sym)
             trail = self._get_trailing_stop(sym)
 
-            if regime == "bear":
-                if sym == "SQQQ":
+            if sym == "SQQQ":
+                if regime == "bear":
                     signals[sym] = ("strong_buy", config.ORDER_FRACTION_TIER1_STRONG, config.TIER1_TRAILING_STOP)
-                    continue
+                else:
+                    signals[sym] = ("hold", config.ORDER_FRACTION, trail)
+                continue
+
+            if regime == "bear":
                 if tier == 3 and sym not in config.DEFENSIVE_TICKERS:
                     signals[sym] = ("hold", config.ORDER_FRACTION, trail)
                     continue
