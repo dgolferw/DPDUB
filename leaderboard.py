@@ -20,8 +20,8 @@ def build_snapshot():
     day_pnl = round(equity - last_equity, 4)
     roi_pct = ((equity - STARTING_EQUITY) / STARTING_EQUITY) * 100
     pos_list = [
-        {"sym": sym, "qty": float(p.qty), "mkt_value": float(p.market_value),
-         "unrealized_pl": float(p.unrealized_pl), "unrealized_plpc": float(p.unrealized_plpc)}
+        {"sym": sym, "qty": float(p.qty), "mv": float(p.market_value),
+         "upnl": float(p.unrealized_pl)}
         for sym, p in positions.items()
     ]
     return {
