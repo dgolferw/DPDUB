@@ -28,7 +28,7 @@ TIER3 = ["RKLB","ASTS","IONQ","LUNR","KTOS","COIN","TSLA","GEO","SQQQ","NOC","LM
 # ---------------------------------------------------------------------------
 # RSI parameters
 # ---------------------------------------------------------------------------
-RSI_PERIOD = 10
+RSI_PERIOD = 14
 RSI_OVERSOLD = 50
 RSI_OVERBOUGHT = 70
 
@@ -71,6 +71,10 @@ MARKET_REGIME_MA = 50
 # ---------------------------------------------------------------------------
 PROFIT_TAKE_PCT = 0.15
 MAX_POSITION_PCT = 0.15
+TIER1_STOP_LOSS = 0.08
+TIER2_STOP_LOSS = 0.06
+TIER3_STOP_LOSS = 0.10
+STOP_LOSS_PCT = 0.05  # fallback only
 
 # ---------------------------------------------------------------------------
 # Filters
@@ -82,5 +86,4 @@ MA_LONG_WINDOW = 30
 VOLUME_MA_DAYS = 20
 VOLUME_SURGE_MULT = 1.2
 SECTOR_ROTATION_DAYS = 5
-STOP_LOSS_PCT = 0.05
 CAMPAIGN_DAYS = 30
