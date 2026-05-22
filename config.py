@@ -15,14 +15,15 @@ TECH_TICKERS = ["NVDA","AMD","MSFT","GOOGL","AVGO","QCOM","INTC","PLTR","TSLA","
 DATACENTER_TICKERS = ["EQIX","DLR","VRT","SMCI","DELL","HPE","GEO","ANET","BE","VST","NRG"]
 HEDGE_TICKERS = ["SQQQ"]
 DEFENSIVE_TICKERS = ["GLD","XOM","LLY","WMT","BRK.B"]
+QUALITY_TICKERS = ["CTSH","CDW","INTU","ROP","BKNG","REGN"]
 
-DEFAULT_TICKERS = SPACE_TICKERS + TECH_TICKERS + DATACENTER_TICKERS + HEDGE_TICKERS + DEFENSIVE_TICKERS
+DEFAULT_TICKERS = SPACE_TICKERS + TECH_TICKERS + DATACENTER_TICKERS + HEDGE_TICKERS + DEFENSIVE_TICKERS + QUALITY_TICKERS
 
 # ---------------------------------------------------------------------------
 # Tier system
 # ---------------------------------------------------------------------------
 TIER1 = ["NVDA","EQIX","VRT","ANET","BE","VST","GLD","LLY"]
-TIER2 = ["AMD","AVGO","SMCI","DLR","NRG","MSFT","INTC","PLTR","XOM","WMT","BRK.B"]
+TIER2 = ["AMD","AVGO","SMCI","DLR","NRG","MSFT","INTC","PLTR","XOM","WMT","BRK.B","CTSH","CDW","INTU","ROP","BKNG","REGN"]
 TIER3 = ["RKLB","ASTS","IONQ","LUNR","KTOS","COIN","TSLA","GEO","SQQQ","NOC","LMT","GOOGL","QCOM","DELL","HPE"]
 
 # ---------------------------------------------------------------------------
