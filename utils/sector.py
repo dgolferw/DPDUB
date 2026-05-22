@@ -8,9 +8,10 @@ SECTORS = {
     "datacenter": config.DATACENTER_TICKERS,
     "defensive": config.DEFENSIVE_TICKERS,
     "hedge": config.HEDGE_TICKERS,
+    "quality": config.QUALITY_TICKERS,
 }
 
-PRIMARY_SECTORS = ["space", "tech", "datacenter"]
+PRIMARY_SECTORS = ["space", "tech", "datacenter", "quality"]
 
 
 def get_sector_performance() -> dict[str, float]:
