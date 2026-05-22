@@ -25,14 +25,21 @@ def check_concentration(sym, qty, price, portfolio_value):
         return max(round(max_qty, 6), 0)
     return qty
 
+def _stop_loss_pct(sym):
+    if sym in config.TIER1: return config.TIER1_STOP_LOSS
+    if sym in config.TIER2: return config.TIER2_STOP_LOSS
+    if sym in config.TIER3: return config.TIER3_STOP_LOSS
+    return config.STOP_LOSS_PCT
+
 def check_stop_losses(dry_run: bool = False) -> list[str]:
     positions = get_positions()
     stopped = []
     for sym, pos in positions.items():
         plpc = float(pos.unrealized_plpc)
-        if plpc <= -config.STOP_LOSS_PCT:
+        threshold = -_stop_loss_pct(sym)
+        if plpc <= threshold:
             qty = float(pos.qty)
-            print(f"  STOP LOSS: {sym} down {plpc*100:.1f}% — selling {qty} shares")
+            print(f"  STOP LOSS: {sym} down {plpc*100:.1f}% (threshold {threshold*100:.0f}%) — selling {qty} shares")
             if not dry_run:
                 place_market_order(sym, "sell", qty)
             stopped.append(sym)
