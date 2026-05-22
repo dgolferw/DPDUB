@@ -42,6 +42,12 @@ class RSIMeanReversion(BaseStrategy):
         if tier == 2: return config.TIER2_TRAILING_STOP
         return config.TIER3_TRAILING_STOP
 
+    def _has_volume(self, df):
+        if "volume" not in df.columns or len(df) < config.VOLUME_MA_DAYS:
+            return True  # not enough history — don't block the trade
+        vol_ma = df["volume"].iloc[-config.VOLUME_MA_DAYS:].mean()
+        return float(df["volume"].iloc[-1]) >= vol_ma * config.VOLUME_SURGE_MULT
+
     def generate_signals(self, bars, regime="bull"):
         signals = {}
         for sym, df in bars.items():
@@ -65,15 +71,17 @@ class RSIMeanReversion(BaseStrategy):
                     signals[sym] = ("hold", config.ORDER_FRACTION, trail)
                     continue
 
+            has_vol = self._has_volume(df)
+
             if rsi > self._get_sell_rsi(sym):
                 signals[sym] = ("sell", config.ORDER_FRACTION, trail)
-            elif rsi < config.STRONG_OVERSOLD:
+            elif rsi < config.STRONG_OVERSOLD and has_vol:
                 signals[sym] = ("strong_buy", self._get_order_fraction(sym, rsi), trail)
-            elif rsi < config.NORMAL_OVERSOLD:
+            elif rsi < config.NORMAL_OVERSOLD and has_vol:
                 signals[sym] = ("buy", self._get_order_fraction(sym, rsi), trail)
-            elif rsi < config.WEAK_OVERSOLD and (tier in (1, 2) or sym in config.DEFENSIVE_TICKERS):
+            elif rsi < config.WEAK_OVERSOLD and has_vol and (tier in (1, 2) or sym in config.DEFENSIVE_TICKERS):
                 signals[sym] = ("buy", self._get_order_fraction(sym, rsi), trail)
-            elif regime == "bull" and 52 < rsi < 65 and tier in (1, 2):
+            elif regime == "bull" and 52 < rsi < 65 and tier in (1, 2) and has_vol:
                 signals[sym] = ("buy", config.ORDER_FRACTION_TIER2_NORMAL, trail)
             else:
                 signals[sym] = ("hold", config.ORDER_FRACTION, trail)
