@@ -6,7 +6,7 @@ from tabulate import tabulate
 import config
 from utils.client import get_trading_client
 from utils.market import get_bars, get_positions, is_market_open
-from utils.orders import calc_order_qty, place_market_order, place_trailing_stop
+from utils.orders import calc_order_qty, place_market_order, place_trailing_stop, cancel_orphaned_trailing_stops
 from utils.sector import get_active_tickers
 from utils.regime import get_market_regime
 from utils.risk import check_concentration, check_profit_taking, check_stop_losses
@@ -57,6 +57,11 @@ def show_status():
 def run_strategy(tickers, dry_run=False):
     print("\n--- Pre-run checks ---")
     regime = get_market_regime()
+
+    print("  Cancelling orphaned trailing stops...")
+    if not dry_run:
+        positions = get_positions()
+        cancel_orphaned_trailing_stops(set(positions.keys()))
 
     print("  Checking stop losses...")
     if not dry_run:
