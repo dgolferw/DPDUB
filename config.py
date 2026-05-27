@@ -22,8 +22,8 @@ DEFAULT_TICKERS = SPACE_TICKERS + TECH_TICKERS + DATACENTER_TICKERS + HEDGE_TICK
 # ---------------------------------------------------------------------------
 # Tier system
 # ---------------------------------------------------------------------------
-TIER1 = ["NVDA","EQIX","VRT","ANET","BE","VST","GLD","LLY"]
-TIER2 = ["AMD","AVGO","SMCI","DLR","NRG","MSFT","INTC","PLTR","XOM","WMT","BRK.B","CTSH","CDW","INTU","ROP","BKNG","REGN"]
+TIER1 = ["NVDA","EQIX","VRT","ANET","BE","VST","LLY"]
+TIER2 = ["AMD","AVGO","SMCI","DLR","NRG","MSFT","INTC","PLTR","XOM","WMT","BRK.B","CTSH","CDW","INTU","ROP","BKNG","REGN","GLD"]
 TIER3 = ["RKLB","ASTS","IONQ","LUNR","KTOS","COIN","TSLA","GEO","SQQQ","NOC","LMT","GOOGL","QCOM","DELL","HPE"]
 
 # ---------------------------------------------------------------------------
