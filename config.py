@@ -10,8 +10,8 @@ if not API_KEY or not SECRET_KEY:
 # ---------------------------------------------------------------------------
 # Ticker universe
 # ---------------------------------------------------------------------------
-SPACE_TICKERS = ["RKLB","ASTS","LUNR","KTOS","NOC","LMT"]
-TECH_TICKERS = ["NVDA","AMD","MSFT","GOOGL","AVGO","QCOM","INTC","PLTR","TSLA","COIN","IONQ"]
+SPACE_TICKERS = ["RKLB","ASTS","LUNR","KTOS","NOC","LMT","ONDS"]
+TECH_TICKERS = ["NVDA","AMD","MSFT","GOOGL","AVGO","QCOM","INTC","PLTR","TSLA","COIN","IONQ","ZETA"]
 DATACENTER_TICKERS = ["EQIX","DLR","VRT","SMCI","DELL","HPE","GEO","ANET","BE","VST","NRG"]
 HEDGE_TICKERS = ["SQQQ"]
 DEFENSIVE_TICKERS = ["GLD","XOM","LLY","WMT","BRK.B"]
@@ -22,9 +22,9 @@ DEFAULT_TICKERS = SPACE_TICKERS + TECH_TICKERS + DATACENTER_TICKERS + HEDGE_TICK
 # ---------------------------------------------------------------------------
 # Tier system
 # ---------------------------------------------------------------------------
-TIER1 = ["NVDA","AMD","EQIX","VRT","ANET","BE","VST","LLY"]
-TIER2 = ["AVGO","SMCI","DLR","NRG","MSFT","INTC","PLTR","XOM","WMT","BRK.B","CTSH","CDW","INTU","ROP","BKNG","REGN","GLD"]
-TIER3 = ["RKLB","ASTS","IONQ","LUNR","KTOS","COIN","TSLA","GEO","SQQQ","NOC","LMT","GOOGL","QCOM","DELL","HPE"]
+TIER1 = ["NVDA","AMD","INTC","PLTR","EQIX","VRT","ANET","BE","VST","LLY"]
+TIER2 = ["AVGO","SMCI","DLR","NRG","MSFT","XOM","WMT","BRK.B","CTSH","CDW","INTU","ROP","BKNG","REGN","GLD"]
+TIER3 = ["RKLB","ASTS","IONQ","LUNR","KTOS","COIN","TSLA","GEO","SQQQ","NOC","LMT","GOOGL","QCOM","DELL","HPE","ONDS","ZETA"]
 
 # ---------------------------------------------------------------------------
 # RSI parameters
@@ -33,24 +33,24 @@ RSI_PERIOD = 14
 RSI_OVERSOLD = 50
 RSI_OVERBOUGHT = 70
 
-# Buy thresholds
+# Buy thresholds (raised for bull market momentum)
 STRONG_OVERSOLD = 35
-NORMAL_OVERSOLD = 50
-WEAK_OVERSOLD = 58
+NORMAL_OVERSOLD = 60
+WEAK_OVERSOLD = 68
 
-# Sell thresholds per tier
-TIER1_SELL_RSI = 78
-TIER2_SELL_RSI = 73
-TIER3_SELL_RSI = 70
+# Sell thresholds per tier (raised to let winners run)
+TIER1_SELL_RSI = 85
+TIER2_SELL_RSI = 82
+TIER3_SELL_RSI = 78
 
 # ---------------------------------------------------------------------------
-# Order sizing
+# Order sizing (increased for bull market aggression)
 # ---------------------------------------------------------------------------
 ORDER_FRACTION_TIER1_STRONG = 0.15
-ORDER_FRACTION_TIER1_NORMAL = 0.10
+ORDER_FRACTION_TIER1_NORMAL = 0.12
 ORDER_FRACTION_TIER2_STRONG = 0.10
-ORDER_FRACTION_TIER2_NORMAL = 0.08
-ORDER_FRACTION_TIER3 = 0.06
+ORDER_FRACTION_TIER2_NORMAL = 0.10
+ORDER_FRACTION_TIER3 = 0.08
 ORDER_FRACTION = 0.07
 
 # ---------------------------------------------------------------------------
