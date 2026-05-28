@@ -19,16 +19,18 @@ def check_profit_taking():
             sell_qty = round(qty * 0.5, 6)
             remaining_qty = round(qty - sell_qty, 6)
             if sell_qty > 0:
-                cancel_open_trailing_stops(sym)
-                time.sleep(1)
-                place_market_order(sym, "sell", sell_qty)
-                if int(remaining_qty) > 0:
-                    try:
-                        place_trailing_stop(sym, int(remaining_qty), _trail_pct(sym))
-                    except Exception as e:
-                        print(f"  Trailing stop re-place skipped for {sym}: {e}")
-                taken.append((sym, unreal_pct * 100, sell_qty))
-                print(f"  PROFIT TAKE: {sym} up {unreal_pct*100:.1f}% - sold half ({sell_qty} shares)")
+                try:
+                    cancel_open_trailing_stops(sym)
+                    place_market_order(sym, "sell", sell_qty)
+                    if int(remaining_qty) > 0:
+                        try:
+                            place_trailing_stop(sym, int(remaining_qty), _trail_pct(sym))
+                        except Exception as e:
+                            print(f"  Trailing stop re-place skipped for {sym}: {e}")
+                    taken.append((sym, unreal_pct * 100, sell_qty))
+                    print(f"  PROFIT TAKE: {sym} up {unreal_pct*100:.1f}% - sold half ({sell_qty} shares)")
+                except Exception as e:
+                    print(f"  PROFIT TAKE skipped for {sym}: {e}")
     return taken
 
 def check_concentration(sym, qty, price, portfolio_value):
@@ -55,8 +57,10 @@ def check_stop_losses(dry_run: bool = False) -> list[str]:
             qty = float(pos.qty)
             print(f"  STOP LOSS: {sym} down {plpc*100:.1f}% (threshold {threshold*100:.0f}%) — selling {qty} shares")
             if not dry_run:
-                cancel_open_trailing_stops(sym)
-                time.sleep(1)
-                place_market_order(sym, "sell", qty)
+                try:
+                    cancel_open_trailing_stops(sym)
+                    place_market_order(sym, "sell", qty)
+                except Exception as e:
+                    print(f"  STOP LOSS sell skipped for {sym}: {e}")
             stopped.append(sym)
     return stopped
