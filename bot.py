@@ -6,7 +6,7 @@ from tabulate import tabulate
 import config
 from utils.client import get_trading_client
 from utils.market import get_bars, get_positions, is_market_open
-from utils.orders import calc_order_qty, place_market_order, place_trailing_stop, cancel_orphaned_trailing_stops
+from utils.orders import calc_order_qty, place_market_order, place_trailing_stop, cancel_open_trailing_stops, cancel_orphaned_trailing_stops
 from utils.sector import get_active_tickers
 from utils.regime import get_market_regime
 from utils.risk import check_concentration, check_profit_taking, check_stop_losses
@@ -123,13 +123,41 @@ def run_strategy(tickers, dry_run=False):
             pos = positions.get(sym)
             if pos:
                 qty = float(pos.qty)
+                sell_qty = round(qty * 0.5, 6)
+                remaining_qty = round(qty - sell_qty, 6)
                 if not dry_run:
-                    place_market_order(sym, "sell", qty)
-                    action = f"SELL {qty}"
+                    cancel_open_trailing_stops(sym)
+                    place_market_order(sym, "sell", sell_qty)
+                    if int(remaining_qty) > 0:
+                        try:
+                            place_trailing_stop(sym, int(remaining_qty), trail)
+                        except Exception as e:
+                            print(f"  Trailing stop skipped for {sym}: {e}")
+                    action = f"SELL HALF {sell_qty} trail={trail}%"
                     placed.append(sym)
                 else:
-                    action = f"[DRY] SELL {qty}"
+                    action = f"[DRY] SELL HALF {sell_qty} trail={trail}%"
         rows.append([sym, f"T{tier}", signal.upper(), f"{fraction*100:.0f}%", action])
+
+    # Add to winning positions that are up 8-12% with a hold signal
+    for sym, pos in positions.items():
+        plpc = float(pos.unrealized_plpc)
+        if 0.08 <= plpc < config.PROFIT_TAKE_PCT and signals.get(sym, ("hold",))[0] == "hold":
+            df = bars.get(sym)
+            if df is not None and not df.empty:
+                price = float(df["close"].iloc[-1])
+                qty = calc_order_qty(cash, price, 0.04)
+                qty = check_concentration(sym, qty, price, portfolio_value)
+                if qty > 0:
+                    tier = 1 if sym in config.TIER1 else (2 if sym in config.TIER2 else 3)
+                    if not dry_run:
+                        place_market_order(sym, "buy", qty)
+                        cash -= qty * price
+                        placed.append(sym)
+                        action = f"ADD {qty} @ ~${price:.2f} (up {plpc*100:.1f}%)"
+                    else:
+                        action = f"[DRY] ADD {qty} @ ~${price:.2f} (up {plpc*100:.1f}%)"
+                    rows.append([sym, f"T{tier}", "ADD", "4%", action])
 
     print("\n" + "="*80)
     print(tabulate(rows, headers=["Symbol","Tier","Signal","Size","Action"], tablefmt="simple"))
