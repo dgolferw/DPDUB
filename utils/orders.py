@@ -1,3 +1,4 @@
+import time
 from alpaca.trading.requests import MarketOrderRequest, TrailingStopOrderRequest, GetOrdersRequest
 from alpaca.trading.enums import OrderSide, TimeInForce, QueryOrderStatus, OrderType
 from utils.client import get_trading_client
@@ -23,6 +24,11 @@ def cancel_open_trailing_stops(symbol):
             cancelled += 1
     if cancelled:
         print(f"  Cancelled {cancelled} existing trailing stop(s) for {symbol}")
+        for _ in range(6):
+            time.sleep(1)
+            remaining = client.get_orders(GetOrdersRequest(status=QueryOrderStatus.OPEN, symbols=[symbol]))
+            if not any(o.type == OrderType.TRAILING_STOP for o in remaining):
+                break
 
 def cancel_orphaned_trailing_stops(position_symbols):
     client = get_trading_client()
