@@ -1,3 +1,4 @@
+import time
 import config
 from utils.client import get_trading_client
 from utils.market import get_positions
@@ -19,6 +20,7 @@ def check_profit_taking():
             remaining_qty = round(qty - sell_qty, 6)
             if sell_qty > 0:
                 cancel_open_trailing_stops(sym)
+                time.sleep(1)
                 place_market_order(sym, "sell", sell_qty)
                 if int(remaining_qty) > 0:
                     try:
@@ -54,6 +56,7 @@ def check_stop_losses(dry_run: bool = False) -> list[str]:
             print(f"  STOP LOSS: {sym} down {plpc*100:.1f}% (threshold {threshold*100:.0f}%) — selling {qty} shares")
             if not dry_run:
                 cancel_open_trailing_stops(sym)
+                time.sleep(1)
                 place_market_order(sym, "sell", qty)
             stopped.append(sym)
     return stopped
