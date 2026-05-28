@@ -108,7 +108,8 @@ def run_strategy(tickers, dry_run=False):
                     label = "STRONG BUY" if signal == "strong_buy" else "BUY"
                     if not dry_run:
                         place_market_order(sym, "buy", qty)
-                        stop_qty = int(qty)
+                        existing_pos = positions.get(sym)
+                        stop_qty = int(float(existing_pos.qty)) if existing_pos else 0
                         if stop_qty > 0:
                             try:
                                 place_trailing_stop(sym, stop_qty, trail)
