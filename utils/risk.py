@@ -64,3 +64,51 @@ def check_stop_losses(dry_run: bool = False) -> list[str]:
                     print(f"  STOP LOSS sell skipped for {sym}: {e}")
             stopped.append(sym)
     return stopped
+
+def rotate_losers_to_cash(positions, signals, cash, portfolio_value):
+    rotated = []
+
+    # Trim to MAX_POSITIONS — sell worst performers first
+    if len(positions) > config.MAX_POSITIONS:
+        excess_count = len(positions) - config.MAX_POSITIONS
+        candidates = sorted(
+            [(sym, float(pos.unrealized_plpc), float(pos.market_value))
+             for sym, pos in positions.items()
+             if signals.get(sym, ("hold",))[0] not in ("buy", "strong_buy")],
+            key=lambda x: x[1]
+        )
+        for sym, plpc, mv in candidates[:excess_count]:
+            qty = float(positions[sym].qty)
+            print(f"  TRIM: {sym} ({plpc*100:.1f}%) — over {config.MAX_POSITIONS} position limit")
+            try:
+                cancel_open_trailing_stops(sym)
+                place_market_order(sym, "sell", qty)
+                cash += mv
+                rotated.append(sym)
+            except Exception as e:
+                print(f"  TRIM sell skipped for {sym}: {e}")
+
+    # Rotate cash-poor: sell underperformers to fund winners
+    if cash < portfolio_value * config.ROTATION_CASH_FLOOR:
+        candidates = sorted(
+            [(sym, float(pos.unrealized_plpc), float(pos.market_value))
+             for sym, pos in positions.items()
+             if sym not in rotated
+             and float(pos.unrealized_plpc) < config.ROTATION_MIN_GAIN
+             and signals.get(sym, ("hold",))[0] not in ("buy", "strong_buy")],
+            key=lambda x: x[1]
+        )
+        for sym, plpc, mv in candidates:
+            if cash >= portfolio_value * config.ROTATION_CASH_FLOOR:
+                break
+            qty = float(positions[sym].qty)
+            print(f"  ROTATE: {sym} ({plpc*100:.1f}%) → freeing capital for winners")
+            try:
+                cancel_open_trailing_stops(sym)
+                place_market_order(sym, "sell", qty)
+                cash += mv
+                rotated.append(sym)
+            except Exception as e:
+                print(f"  ROTATE sell skipped for {sym}: {e}")
+
+    return cash, rotated
