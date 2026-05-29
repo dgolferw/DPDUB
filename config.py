@@ -44,7 +44,7 @@ TIER2_SELL_RSI = 82
 TIER3_SELL_RSI = 78
 
 # ---------------------------------------------------------------------------
-# Order sizing (increased for bull market aggression)
+# Order sizing
 # ---------------------------------------------------------------------------
 ORDER_FRACTION_TIER1_STRONG = 0.15
 ORDER_FRACTION_TIER1_NORMAL = 0.12
@@ -71,11 +71,18 @@ MARKET_REGIME_MA = 50
 # Risk management
 # ---------------------------------------------------------------------------
 PROFIT_TAKE_PCT = 0.12
-MAX_POSITION_PCT = 0.15
+MAX_POSITION_PCT = 0.22
+MAX_POSITIONS = 8
 TIER1_STOP_LOSS = 0.08
 TIER2_STOP_LOSS = 0.06
 TIER3_STOP_LOSS = 0.10
 STOP_LOSS_PCT = 0.05  # fallback only
+
+# ---------------------------------------------------------------------------
+# Rotation
+# ---------------------------------------------------------------------------
+ROTATION_MIN_GAIN = 0.02
+ROTATION_CASH_FLOOR = 0.12
 
 # ---------------------------------------------------------------------------
 # Filters
