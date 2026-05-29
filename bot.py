@@ -9,7 +9,7 @@ from utils.market import get_bars, get_positions, is_market_open
 from utils.orders import calc_order_qty, place_market_order, place_trailing_stop, cancel_open_trailing_stops, cancel_orphaned_trailing_stops
 from utils.sector import get_active_tickers
 from utils.regime import get_market_regime
-from utils.risk import check_concentration, check_profit_taking, check_stop_losses
+from utils.risk import check_concentration, check_profit_taking, check_stop_losses, rotate_losers_to_cash
 from strategies.rsi import RSIMeanReversion
 
 ET = pytz.timezone("America/New_York")
@@ -95,7 +95,15 @@ def run_strategy(tickers, dry_run=False):
     rows = []
     placed = []
 
+    print("  Rotating losers to fund winners...")
+    if not dry_run:
+        cash, rotated = rotate_losers_to_cash(positions, signals, cash, portfolio_value)
+    else:
+        rotated = []
+
     for sym, (signal, fraction, trail) in signals.items():
+        if sym in rotated:
+            continue
         tier = 1 if sym in config.TIER1 else (2 if sym in config.TIER2 else 3)
         action = "-"
         if signal in ("buy", "strong_buy"):
@@ -142,12 +150,14 @@ def run_strategy(tickers, dry_run=False):
 
     # Add to winning positions that are up 8-12% with a hold signal
     for sym, pos in positions.items():
+        if sym in rotated:
+            continue
         plpc = float(pos.unrealized_plpc)
         if 0.08 <= plpc < config.PROFIT_TAKE_PCT and signals.get(sym, ("hold",))[0] == "hold":
             df = bars.get(sym)
             if df is not None and not df.empty:
                 price = float(df["close"].iloc[-1])
-                qty = calc_order_qty(cash, price, 0.04)
+                qty = calc_order_qty(cash, price, 0.06)
                 qty = check_concentration(sym, qty, price, portfolio_value)
                 if qty > 0:
                     tier = 1 if sym in config.TIER1 else (2 if sym in config.TIER2 else 3)
@@ -158,7 +168,7 @@ def run_strategy(tickers, dry_run=False):
                         action = f"ADD {qty} @ ~${price:.2f} (up {plpc*100:.1f}%)"
                     else:
                         action = f"[DRY] ADD {qty} @ ~${price:.2f} (up {plpc*100:.1f}%)"
-                    rows.append([sym, f"T{tier}", "ADD", "4%", action])
+                    rows.append([sym, f"T{tier}", "ADD", "6%", action])
 
     print("\n" + "="*80)
     print(tabulate(rows, headers=["Symbol","Tier","Signal","Size","Action"], tablefmt="simple"))
