@@ -19,18 +19,18 @@ def cancel_open_trailing_stops(symbol):
     open_orders = client.get_orders(GetOrdersRequest(status=QueryOrderStatus.OPEN, symbols=[symbol]))
     cancelled = 0
     for o in open_orders:
-        if o.side == OrderSide.SELL:
+        if o.type == OrderType.TRAILING_STOP:
             try:
                 client.cancel_order_by_id(o.id)
                 cancelled += 1
             except Exception as e:
                 print(f"  Could not cancel order {o.id} for {symbol}: {e}")
     if cancelled:
-        print(f"  Cancelled {cancelled} open sell order(s) for {symbol}")
+        print(f"  Cancelled {cancelled} trailing stop(s) for {symbol}")
         for _ in range(6):
             time.sleep(1)
             remaining = client.get_orders(GetOrdersRequest(status=QueryOrderStatus.OPEN, symbols=[symbol]))
-            if not any(o.side == OrderSide.SELL for o in remaining):
+            if not any(o.type == OrderType.TRAILING_STOP for o in remaining):
                 break
 
 def cancel_orphaned_trailing_stops(position_symbols):
