@@ -65,8 +65,9 @@ def check_stop_losses(dry_run: bool = False) -> list[str]:
             stopped.append(sym)
     return stopped
 
-def rotate_losers_to_cash(positions, signals, cash, portfolio_value):
+def rotate_losers_to_cash(positions, signals, cash, portfolio_value, exclude=None):
     rotated = []
+    skip = set(exclude or [])
 
     # Trim to MAX_POSITIONS — sell worst performers first
     if len(positions) > config.MAX_POSITIONS:
@@ -74,7 +75,8 @@ def rotate_losers_to_cash(positions, signals, cash, portfolio_value):
         candidates = sorted(
             [(sym, float(pos.unrealized_plpc), float(pos.market_value))
              for sym, pos in positions.items()
-             if signals.get(sym, ("hold",))[0] not in ("buy", "strong_buy")],
+             if sym not in skip
+             and signals.get(sym, ("hold",))[0] not in ("buy", "strong_buy")],
             key=lambda x: x[1]
         )
         for sym, plpc, mv in candidates[:excess_count]:
@@ -85,6 +87,7 @@ def rotate_losers_to_cash(positions, signals, cash, portfolio_value):
                 place_market_order(sym, "sell", qty)
                 cash += mv
                 rotated.append(sym)
+                skip.add(sym)
             except Exception as e:
                 print(f"  TRIM sell skipped for {sym}: {e}")
 
@@ -93,7 +96,7 @@ def rotate_losers_to_cash(positions, signals, cash, portfolio_value):
         candidates = sorted(
             [(sym, float(pos.unrealized_plpc), float(pos.market_value))
              for sym, pos in positions.items()
-             if sym not in rotated
+             if sym not in skip
              and float(pos.unrealized_plpc) < config.ROTATION_MIN_GAIN
              and signals.get(sym, ("hold",))[0] not in ("buy", "strong_buy")],
             key=lambda x: x[1]
