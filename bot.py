@@ -60,8 +60,8 @@ def run_strategy(tickers, dry_run=False):
 
     print("  Cancelling orphaned trailing stops...")
     if not dry_run:
-        positions = get_positions()
-        cancel_orphaned_trailing_stops(set(positions.keys()))
+        positions_now = get_positions()
+        cancel_orphaned_trailing_stops(set(positions_now.keys()))
 
     print("  Checking stop losses...")
     stopped = []
@@ -83,16 +83,20 @@ def run_strategy(tickers, dry_run=False):
     print("  Fetching sector rotation...")
     active = get_active_tickers()
     tickers = [t for t in tickers if t in active] or tickers
+    for sym in config.TIER1:
+        if sym not in tickers:
+            tickers.append(sym)
     print(f"  Trading {len(tickers)} tickers after sector filter")
 
-    strategy = RSIMeanReversion(tickers)
-    bars = get_bars(tickers, days=max(config.MA_LONG_WINDOW, config.RSI_PERIOD, config.VOLUME_MA_DAYS)+5)
+    positions = get_positions()
+    all_syms = list(set(tickers) | set(positions.keys()))
+    strategy = RSIMeanReversion(all_syms)
+    bars = get_bars(all_syms, days=max(config.MA_LONG_WINDOW, config.RSI_PERIOD, config.VOLUME_MA_DAYS)+5)
     signals = strategy.generate_signals(bars, regime=regime)
 
     account = get_trading_client().get_account()
     cash = float(account.cash)
     portfolio_value = float(account.portfolio_value)
-    positions = get_positions()
     rows = []
     placed = []
 
