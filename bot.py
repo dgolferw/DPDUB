@@ -64,6 +64,7 @@ def run_strategy(tickers, dry_run=False):
         cancel_orphaned_trailing_stops(set(positions.keys()))
 
     print("  Checking stop losses...")
+    stopped = []
     if not dry_run:
         stopped = check_stop_losses()
         if stopped:
@@ -97,7 +98,7 @@ def run_strategy(tickers, dry_run=False):
 
     print("  Rotating losers to fund winners...")
     if not dry_run:
-        cash, rotated = rotate_losers_to_cash(positions, signals, cash, portfolio_value)
+        cash, rotated = rotate_losers_to_cash(positions, signals, cash, portfolio_value, exclude=stopped)
     else:
         rotated = []
 
