@@ -84,7 +84,7 @@ def run_strategy(tickers, dry_run=False):
     print("  Fetching sector rotation...")
     active = get_active_tickers()
     tickers = [t for t in tickers if t in active] or tickers
-    for sym in config.TIER1:
+    for sym in config.TIER1 + config.LEVERAGED_TICKERS:
         if sym not in tickers:
             tickers.append(sym)
     print(f"  Trading {len(tickers)} tickers after sector filter")
