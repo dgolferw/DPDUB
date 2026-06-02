@@ -166,11 +166,18 @@ def run_strategy(tickers, dry_run=False):
                 qty = check_concentration(sym, qty, price, portfolio_value)
                 if qty > 0:
                     tier = 1 if sym in config.TIER1 else (2 if sym in config.TIER2 else 3)
+                    trail = config.TIER1_TRAILING_STOP if tier == 1 else (config.TIER2_TRAILING_STOP if tier == 2 else config.TIER3_TRAILING_STOP)
                     if not dry_run:
                         place_market_order(sym, "buy", qty)
                         cash -= qty * price
                         placed.append(sym)
-                        action = f"ADD {qty} @ ~${price:.2f} (up {plpc*100:.1f}%)"
+                        stop_qty = int(float(pos.qty))
+                        if stop_qty > 0:
+                            try:
+                                place_trailing_stop(sym, stop_qty, trail)
+                            except Exception as e:
+                                print(f"  Trailing stop skipped for {sym}: {e}")
+                        action = f"ADD {qty} @ ~${price:.2f} (up {plpc*100:.1f}%) trail={trail}%"
                     else:
                         action = f"[DRY] ADD {qty} @ ~${price:.2f} (up {plpc*100:.1f}%)"
                     rows.append([sym, f"T{tier}", "ADD", "6%", action])
