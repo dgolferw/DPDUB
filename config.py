@@ -16,15 +16,16 @@ DATACENTER_TICKERS = ["EQIX","DLR","VRT","SMCI","DELL","HPE","GEO","ANET","BE","
 HEDGE_TICKERS = ["SQQQ"]
 DEFENSIVE_TICKERS = ["GLD","XOM","LLY","WMT","BRK.B"]
 QUALITY_TICKERS = ["CTSH","CDW","INTU","ROP","BKNG","REGN"]
+LEVERAGED_TICKERS = ["TQQQ","SOXL"]
 
-DEFAULT_TICKERS = SPACE_TICKERS + TECH_TICKERS + DATACENTER_TICKERS + HEDGE_TICKERS + DEFENSIVE_TICKERS + QUALITY_TICKERS
+DEFAULT_TICKERS = SPACE_TICKERS + TECH_TICKERS + DATACENTER_TICKERS + HEDGE_TICKERS + DEFENSIVE_TICKERS + QUALITY_TICKERS + LEVERAGED_TICKERS
 
 # ---------------------------------------------------------------------------
 # Tier system
 # ---------------------------------------------------------------------------
 TIER1 = ["NVDA","AMD","INTC","PLTR","EQIX","VRT","ANET","BE","VST","LLY"]
-TIER2 = ["AVGO","SMCI","DLR","NRG","MSFT","XOM","WMT","BRK.B","CTSH","CDW","INTU","ROP","BKNG","REGN","GLD"]
-TIER3 = ["RKLB","ASTS","IONQ","LUNR","KTOS","COIN","TSLA","GEO","SQQQ","NOC","LMT","GOOGL","QCOM","DELL","HPE","ONDS","ZETA"]
+TIER2 = ["AVGO","SMCI","DLR","NRG","MSFT","XOM","WMT","BRK.B","CTSH","CDW","INTU","ROP","BKNG","REGN","GLD","TQQQ"]
+TIER3 = ["RKLB","ASTS","IONQ","LUNR","KTOS","COIN","TSLA","GEO","SQQQ","NOC","LMT","GOOGL","QCOM","DELL","HPE","ONDS","ZETA","SOXL"]
 
 # ---------------------------------------------------------------------------
 # RSI parameters
