@@ -13,6 +13,7 @@ from utils.risk import check_concentration, check_profit_taking, check_stop_loss
 from strategies.rsi import RSIMeanReversion
 
 ET = pytz.timezone("America/New_York")
+MIN_QTY = 0.001
 
 def in_buy_window():
     now = datetime.now(ET)
@@ -135,27 +136,33 @@ def run_strategy(tickers, dry_run=False):
                         action = f"[DRY] {label} {qty} @ ~${price:.2f} trail={trail}%"
         elif signal == "sell":
             pos = positions.get(sym)
-            if pos:
+            if pos and float(pos.qty) >= MIN_QTY:
                 qty = float(pos.qty)
                 sell_qty = round(qty * 0.5, 6)
                 remaining_qty = round(qty - sell_qty, 6)
-                if not dry_run:
-                    cancel_open_trailing_stops(sym)
-                    place_market_order(sym, "sell", sell_qty)
-                    if int(remaining_qty) > 0:
+                if sell_qty >= MIN_QTY:
+                    if not dry_run:
                         try:
-                            place_trailing_stop(sym, int(remaining_qty), trail)
+                            cancel_open_trailing_stops(sym)
+                            place_market_order(sym, "sell", sell_qty)
+                            if int(remaining_qty) > 0:
+                                try:
+                                    place_trailing_stop(sym, int(remaining_qty), trail)
+                                except Exception as e:
+                                    print(f"  Trailing stop skipped for {sym}: {e}")
+                            action = f"SELL HALF {sell_qty} trail={trail}%"
+                            placed.append(sym)
                         except Exception as e:
-                            print(f"  Trailing stop skipped for {sym}: {e}")
-                    action = f"SELL HALF {sell_qty} trail={trail}%"
-                    placed.append(sym)
-                else:
-                    action = f"[DRY] SELL HALF {sell_qty} trail={trail}%"
+                            print(f"  SELL skipped for {sym}: {e}")
+                    else:
+                        action = f"[DRY] SELL HALF {sell_qty} trail={trail}%"
         rows.append([sym, f"T{tier}", signal.upper(), f"{fraction*100:.0f}%", action])
 
     # Add to winning positions that are up 5-12% with a hold signal
     for sym, pos in positions.items():
         if sym in rotated:
+            continue
+        if float(pos.qty) < MIN_QTY:
             continue
         plpc = float(pos.unrealized_plpc)
         if 0.05 <= plpc < config.PROFIT_TAKE_PCT and signals.get(sym, ("hold",))[0] == "hold":
