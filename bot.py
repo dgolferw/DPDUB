@@ -158,14 +158,14 @@ def run_strategy(tickers, dry_run=False):
                         action = f"[DRY] SELL HALF {sell_qty} trail={trail}%"
         rows.append([sym, f"T{tier}", signal.upper(), f"{fraction*100:.0f}%", action])
 
-    # Add to winning positions that are up 5-12% with a hold signal
+    # Add to winning positions that are up 3-12% with a hold signal
     for sym, pos in positions.items():
         if sym in rotated:
             continue
         if float(pos.qty) < MIN_QTY:
             continue
         plpc = float(pos.unrealized_plpc)
-        if 0.05 <= plpc < config.PROFIT_TAKE_PCT and signals.get(sym, ("hold",))[0] == "hold":
+        if 0.03 <= plpc < config.PROFIT_TAKE_PCT and signals.get(sym, ("hold",))[0] == "hold":
             df = bars.get(sym)
             if df is not None and not df.empty:
                 price = float(df["close"].iloc[-1])
