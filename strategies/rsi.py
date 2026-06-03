@@ -81,7 +81,7 @@ class RSIMeanReversion(BaseStrategy):
                 signals[sym] = ("buy", self._get_order_fraction(sym, rsi), trail)
             elif rsi < config.WEAK_OVERSOLD and has_vol and (tier in (1, 2) or sym in config.DEFENSIVE_TICKERS):
                 signals[sym] = ("buy", self._get_order_fraction(sym, rsi), trail)
-            elif regime == "bull" and 45 < rsi < 80 and tier in (1, 2) and has_vol:
+            elif regime == "bull" and 45 < rsi < 84 and tier in (1, 2) and has_vol:
                 signals[sym] = ("buy", config.ORDER_FRACTION_TIER2_NORMAL, trail)
             else:
                 signals[sym] = ("hold", config.ORDER_FRACTION, trail)
