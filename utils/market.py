@@ -18,7 +18,7 @@ def get_bars(symbols, days=60):
     start = end - timedelta(days=days)
     request = StockBarsRequest(
         symbol_or_symbols=symbols,
-        timeframe=TimeFrame.Day,
+        timeframe=TimeFrame.Hour,
         start=start,
         end=end,
         feed="iex",
