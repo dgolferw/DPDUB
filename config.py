@@ -30,7 +30,7 @@ TIER3 = ["RKLB","ASTS","IONQ","LUNR","KTOS","COIN","TSLA","GEO","SQQQ","NOC","LM
 # ---------------------------------------------------------------------------
 # RSI parameters
 # ---------------------------------------------------------------------------
-RSI_PERIOD = 14
+RSI_PERIOD = 7
 RSI_OVERSOLD = 50
 RSI_OVERBOUGHT = 70
 
