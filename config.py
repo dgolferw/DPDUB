@@ -8,59 +8,51 @@ if not API_KEY or not SECRET_KEY:
     raise EnvironmentError("ALPACA_API_KEY and ALPACA_SECRET_KEY must be set in .env")
 
 # ---------------------------------------------------------------------------
-# Ticker universe
+# Ticker universe — focused bull portfolio
 # ---------------------------------------------------------------------------
-SPACE_TICKERS = ["RKLB","ASTS","LUNR","KTOS","NOC","LMT","ONDS"]
-TECH_TICKERS = ["NVDA","AMD","MSFT","GOOGL","AVGO","QCOM","INTC","PLTR","TSLA","COIN","IONQ","ZETA"]
-DATACENTER_TICKERS = ["EQIX","DLR","VRT","SMCI","DELL","HPE","GEO","ANET","BE","VST","NRG"]
-HEDGE_TICKERS = ["SQQQ"]
-DEFENSIVE_TICKERS = ["GLD","XOM","LLY","WMT","BRK.B"]
-QUALITY_TICKERS = ["CTSH","CDW","INTU","ROP","BKNG","REGN"]
-LEVERAGED_TICKERS = ["TQQQ","SOXL"]
-
-DEFAULT_TICKERS = SPACE_TICKERS + TECH_TICKERS + DATACENTER_TICKERS + HEDGE_TICKERS + DEFENSIVE_TICKERS + QUALITY_TICKERS + LEVERAGED_TICKERS
+DEFAULT_TICKERS = ["NVDA","AMD","ANET","INTC","AVGO","MSFT","TQQQ","GOOGL"]
+LEVERAGED_TICKERS = ["TQQQ"]
+DEFENSIVE_TICKERS = ["GLD","XOM","WMT","BRK.B"]
 
 # ---------------------------------------------------------------------------
 # Tier system
 # ---------------------------------------------------------------------------
-TIER1 = ["NVDA","AMD","INTC","PLTR","EQIX","VRT","ANET","BE","VST","LLY"]
-TIER2 = ["AVGO","SMCI","DLR","NRG","MSFT","XOM","WMT","BRK.B","CTSH","CDW","INTU","ROP","BKNG","REGN","GLD","TQQQ"]
-TIER3 = ["RKLB","ASTS","IONQ","LUNR","KTOS","COIN","TSLA","GEO","SQQQ","NOC","LMT","GOOGL","QCOM","DELL","HPE","ONDS","ZETA","SOXL"]
+TIER1 = ["NVDA","AMD","ANET","INTC"]
+TIER2 = ["AVGO","MSFT","TQQQ","GOOGL"]
+TIER3 = ["SQQQ"]
 
 # ---------------------------------------------------------------------------
 # RSI parameters
 # ---------------------------------------------------------------------------
-RSI_PERIOD = 7
+RSI_PERIOD = 14
 RSI_OVERSOLD = 50
 RSI_OVERBOUGHT = 70
 
-# Buy thresholds (raised for bull market momentum)
 STRONG_OVERSOLD = 35
 NORMAL_OVERSOLD = 60
 WEAK_OVERSOLD = 68
 
-# Sell thresholds per tier (raised to let winners run)
-TIER1_SELL_RSI = 85
-TIER2_SELL_RSI = 82
-TIER3_SELL_RSI = 78
+TIER1_SELL_RSI = 95
+TIER2_SELL_RSI = 92
+TIER3_SELL_RSI = 90
 
 # ---------------------------------------------------------------------------
-# Order sizing
+# Order sizing — bigger positions, fewer of them
 # ---------------------------------------------------------------------------
-ORDER_FRACTION_TIER1_STRONG = 0.15
-ORDER_FRACTION_TIER1_NORMAL = 0.12
-ORDER_FRACTION_TIER2_STRONG = 0.10
-ORDER_FRACTION_TIER2_NORMAL = 0.10
-ORDER_FRACTION_TIER3 = 0.08
-ORDER_FRACTION = 0.07
+ORDER_FRACTION_TIER1_STRONG = 0.20
+ORDER_FRACTION_TIER1_NORMAL = 0.15
+ORDER_FRACTION_TIER2_STRONG = 0.15
+ORDER_FRACTION_TIER2_NORMAL = 0.12
+ORDER_FRACTION_TIER3 = 0.10
+ORDER_FRACTION = 0.10
 
 # ---------------------------------------------------------------------------
-# Trailing stops
+# Trailing stops — wide enough to survive normal volatility
 # ---------------------------------------------------------------------------
-TIER1_TRAILING_STOP = 6.0
-TIER2_TRAILING_STOP = 4.0
-TIER3_TRAILING_STOP = 6.0
-TRAILING_STOP_PCT = 4.0
+TIER1_TRAILING_STOP = 10.0
+TIER2_TRAILING_STOP = 8.0
+TIER3_TRAILING_STOP = 8.0
+TRAILING_STOP_PCT = 8.0
 
 # ---------------------------------------------------------------------------
 # Market regime
@@ -71,13 +63,13 @@ MARKET_REGIME_MA = 50
 # ---------------------------------------------------------------------------
 # Risk management
 # ---------------------------------------------------------------------------
-PROFIT_TAKE_PCT = 0.12
-MAX_POSITION_PCT = 0.22
-MAX_POSITIONS = 8
-TIER1_STOP_LOSS = 0.08
-TIER2_STOP_LOSS = 0.06
-TIER3_STOP_LOSS = 0.10
-STOP_LOSS_PCT = 0.05  # fallback only
+PROFIT_TAKE_PCT = 0.20
+MAX_POSITION_PCT = 0.30
+MAX_POSITIONS = 6
+TIER1_STOP_LOSS = 0.10
+TIER2_STOP_LOSS = 0.10
+TIER3_STOP_LOSS = 0.12
+STOP_LOSS_PCT = 0.10
 
 # ---------------------------------------------------------------------------
 # Rotation
