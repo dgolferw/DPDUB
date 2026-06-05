@@ -55,6 +55,33 @@ def show_status():
     print(f"\n  Market: {'OPEN' if is_market_open() else 'CLOSED'}")
     print(f"  Buy window active: {in_buy_window()}")
 
+def _trail_pct(sym):
+    if sym in config.TIER1: return config.TIER1_TRAILING_STOP
+    if sym in config.TIER2: return config.TIER2_TRAILING_STOP
+    return config.TIER3_TRAILING_STOP
+
+def audit_trailing_stops(positions):
+    """Ensure every real position has a full trailing stop covering all shares."""
+    from alpaca.trading.requests import GetOrdersRequest
+    from alpaca.trading.enums import QueryOrderStatus
+    from utils.client import get_trading_client
+    client = get_trading_client()
+    for sym, pos in positions.items():
+        qty = float(pos.qty)
+        if qty < MIN_QTY:
+            continue
+        stop_qty = int(qty)
+        if stop_qty < 1:
+            continue
+        open_orders = client.get_orders(GetOrdersRequest(status=QueryOrderStatus.OPEN, symbols=[sym]))
+        has_stop = any(o.side.value == "sell" for o in open_orders)
+        if not has_stop:
+            try:
+                place_trailing_stop(sym, stop_qty, _trail_pct(sym))
+                print(f"  Placed missing trailing stop for {sym} ({stop_qty} shares @ {_trail_pct(sym)}%)")
+            except Exception as e:
+                print(f"  Trailing stop audit skipped for {sym}: {e}")
+
 def run_strategy(tickers, dry_run=False):
     print("\n--- Pre-run checks ---")
     regime = get_market_regime()
@@ -82,13 +109,13 @@ def run_strategy(tickers, dry_run=False):
         return
 
     positions = get_positions()
+    real_positions = {s: p for s, p in positions.items() if float(p.qty) >= MIN_QTY}
 
-    # Trim to MAX_POSITIONS — sell worst performer(s)
+    # Trim to MAX_POSITIONS — sell worst performers first
     if not dry_run:
-        eligible = {s: p for s, p in positions.items() if float(p.qty) >= MIN_QTY}
-        if len(eligible) > config.MAX_POSITIONS:
-            excess = len(eligible) - config.MAX_POSITIONS
-            worst = sorted(eligible.items(), key=lambda x: float(x[1].unrealized_plpc))[:excess]
+        if len(real_positions) > config.MAX_POSITIONS:
+            excess = len(real_positions) - config.MAX_POSITIONS
+            worst = sorted(real_positions.items(), key=lambda x: float(x[1].unrealized_plpc))[:excess]
             for sym, pos in worst:
                 qty = float(pos.qty)
                 print(f"  TRIM: {sym} ({float(pos.unrealized_plpc)*100:.1f}%) — over {config.MAX_POSITIONS} position limit")
@@ -107,7 +134,8 @@ def run_strategy(tickers, dry_run=False):
             tickers.append(sym)
     print(f"  Trading {len(tickers)} tickers after sector filter")
 
-    all_syms = list(set(tickers) | set(positions.keys()))
+    # Only include real positions (not ghosts) when building signal universe
+    all_syms = list(set(tickers) | set(real_positions.keys()))
     strategy = RSIMeanReversion(all_syms)
     bars = get_bars(all_syms, days=max(config.MA_LONG_WINDOW, config.RSI_PERIOD, config.VOLUME_MA_DAYS)+5)
     signals = strategy.generate_signals(bars, regime=regime)
@@ -133,8 +161,7 @@ def run_strategy(tickers, dry_run=False):
                     label = "STRONG BUY" if signal == "strong_buy" else "BUY"
                     if not dry_run:
                         place_market_order(sym, "buy", qty)
-                        existing_pos = positions.get(sym)
-                        # Use existing position qty for stop, or new buy qty for fresh positions
+                        existing_pos = real_positions.get(sym)
                         stop_qty = int(float(existing_pos.qty)) if existing_pos else int(qty)
                         if stop_qty > 0:
                             try:
@@ -152,6 +179,13 @@ def run_strategy(tickers, dry_run=False):
     print(tabulate(rows, headers=["Symbol","Tier","Signal","Size","Action"], tablefmt="simple"))
     print(f"\n  {len(placed)} order(s) placed." if placed else "\n  No orders placed.")
     print(f"  Regime: {regime.upper()}  |  Cash remaining: ${cash:,.2f}")
+
+    # Audit: ensure every position has a trailing stop
+    if not dry_run and placed:
+        print("\n  Auditing trailing stops...")
+        import time
+        time.sleep(2)
+        audit_trailing_stops(get_positions())
 
 def main():
     p = argparse.ArgumentParser()
