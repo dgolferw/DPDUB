@@ -1,8 +1,8 @@
 import config
-from utils.market import get_bars
+from utils.market import get_daily_bars
 
 def get_market_regime():
-    bars = get_bars([config.MARKET_REGIME_TICKER], days=config.MARKET_REGIME_MA + 5)
+    bars = get_daily_bars([config.MARKET_REGIME_TICKER], days=config.MARKET_REGIME_MA + 10)
     df = bars.get(config.MARKET_REGIME_TICKER)
     if df is None or df.empty or len(df) < config.MARKET_REGIME_MA:
         return "bull"
