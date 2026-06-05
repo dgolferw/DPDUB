@@ -9,7 +9,7 @@ from utils.market import get_bars, get_positions, is_market_open
 from utils.orders import calc_order_qty, place_market_order, place_trailing_stop, cancel_open_trailing_stops, cancel_orphaned_trailing_stops
 from utils.sector import get_active_tickers
 from utils.regime import get_market_regime
-from utils.risk import check_concentration, check_profit_taking, check_stop_losses, rotate_losers_to_cash
+from utils.risk import check_concentration, check_profit_taking, check_stop_losses
 from strategies.rsi import RSIMeanReversion
 
 ET = pytz.timezone("America/New_York")
@@ -58,14 +58,14 @@ def show_status():
 def run_strategy(tickers, dry_run=False):
     print("\n--- Pre-run checks ---")
     regime = get_market_regime()
+    stopped = []
 
     print("  Cancelling orphaned trailing stops...")
     if not dry_run:
-        positions_now = get_positions()
-        cancel_orphaned_trailing_stops(set(positions_now.keys()))
+        positions = get_positions()
+        cancel_orphaned_trailing_stops(set(positions.keys()))
 
     print("  Checking stop losses...")
-    stopped = []
     if not dry_run:
         stopped = check_stop_losses()
         if stopped:
@@ -81,6 +81,24 @@ def run_strategy(tickers, dry_run=False):
         print(f"  Outside buy window - skipping new buys")
         return
 
+    positions = get_positions()
+
+    # Trim to MAX_POSITIONS — sell worst performer(s)
+    if not dry_run:
+        eligible = {s: p for s, p in positions.items() if float(p.qty) >= MIN_QTY}
+        if len(eligible) > config.MAX_POSITIONS:
+            excess = len(eligible) - config.MAX_POSITIONS
+            worst = sorted(eligible.items(), key=lambda x: float(x[1].unrealized_plpc))[:excess]
+            for sym, pos in worst:
+                qty = float(pos.qty)
+                print(f"  TRIM: {sym} ({float(pos.unrealized_plpc)*100:.1f}%) — over {config.MAX_POSITIONS} position limit")
+                try:
+                    cancel_open_trailing_stops(sym)
+                    place_market_order(sym, "sell", qty)
+                    stopped.append(sym)
+                except Exception as e:
+                    print(f"  TRIM skipped for {sym}: {e}")
+
     print("  Fetching sector rotation...")
     active = get_active_tickers()
     tickers = [t for t in tickers if t in active] or tickers
@@ -89,7 +107,6 @@ def run_strategy(tickers, dry_run=False):
             tickers.append(sym)
     print(f"  Trading {len(tickers)} tickers after sector filter")
 
-    positions = get_positions()
     all_syms = list(set(tickers) | set(positions.keys()))
     strategy = RSIMeanReversion(all_syms)
     bars = get_bars(all_syms, days=max(config.MA_LONG_WINDOW, config.RSI_PERIOD, config.VOLUME_MA_DAYS)+5)
@@ -101,14 +118,8 @@ def run_strategy(tickers, dry_run=False):
     rows = []
     placed = []
 
-    print("  Rotating losers to fund winners...")
-    if not dry_run:
-        cash, rotated = rotate_losers_to_cash(positions, signals, cash, portfolio_value, exclude=stopped)
-    else:
-        rotated = []
-
     for sym, (signal, fraction, trail) in signals.items():
-        if sym in rotated:
+        if sym in stopped:
             continue
         tier = 1 if sym in config.TIER1 else (2 if sym in config.TIER2 else 3)
         action = "-"
@@ -123,7 +134,8 @@ def run_strategy(tickers, dry_run=False):
                     if not dry_run:
                         place_market_order(sym, "buy", qty)
                         existing_pos = positions.get(sym)
-                        stop_qty = int(float(existing_pos.qty)) if existing_pos else 0
+                        # Use existing position qty for stop, or new buy qty for fresh positions
+                        stop_qty = int(float(existing_pos.qty)) if existing_pos else int(qty)
                         if stop_qty > 0:
                             try:
                                 place_trailing_stop(sym, stop_qty, trail)
@@ -134,60 +146,7 @@ def run_strategy(tickers, dry_run=False):
                         placed.append(sym)
                     else:
                         action = f"[DRY] {label} {qty} @ ~${price:.2f} trail={trail}%"
-        elif signal == "sell":
-            pos = positions.get(sym)
-            if pos and float(pos.qty) >= MIN_QTY:
-                qty = float(pos.qty)
-                sell_qty = round(qty * 0.5, 6)
-                remaining_qty = round(qty - sell_qty, 6)
-                if sell_qty >= MIN_QTY:
-                    if not dry_run:
-                        try:
-                            cancel_open_trailing_stops(sym)
-                            place_market_order(sym, "sell", sell_qty)
-                            if int(remaining_qty) > 0:
-                                try:
-                                    place_trailing_stop(sym, int(remaining_qty), trail)
-                                except Exception as e:
-                                    print(f"  Trailing stop skipped for {sym}: {e}")
-                            action = f"SELL HALF {sell_qty} trail={trail}%"
-                            placed.append(sym)
-                        except Exception as e:
-                            print(f"  SELL skipped for {sym}: {e}")
-                    else:
-                        action = f"[DRY] SELL HALF {sell_qty} trail={trail}%"
         rows.append([sym, f"T{tier}", signal.upper(), f"{fraction*100:.0f}%", action])
-
-    # Add to winning positions that are up 3-12% with a hold signal
-    for sym, pos in positions.items():
-        if sym in rotated:
-            continue
-        if float(pos.qty) < MIN_QTY:
-            continue
-        plpc = float(pos.unrealized_plpc)
-        if 0.03 <= plpc < config.PROFIT_TAKE_PCT and signals.get(sym, ("hold",))[0] == "hold":
-            df = bars.get(sym)
-            if df is not None and not df.empty:
-                price = float(df["close"].iloc[-1])
-                qty = calc_order_qty(cash, price, 0.06)
-                qty = check_concentration(sym, qty, price, portfolio_value)
-                if qty > 0:
-                    tier = 1 if sym in config.TIER1 else (2 if sym in config.TIER2 else 3)
-                    trail = config.TIER1_TRAILING_STOP if tier == 1 else (config.TIER2_TRAILING_STOP if tier == 2 else config.TIER3_TRAILING_STOP)
-                    if not dry_run:
-                        place_market_order(sym, "buy", qty)
-                        cash -= qty * price
-                        placed.append(sym)
-                        stop_qty = int(float(pos.qty))
-                        if stop_qty > 0:
-                            try:
-                                place_trailing_stop(sym, stop_qty, trail)
-                            except Exception as e:
-                                print(f"  Trailing stop skipped for {sym}: {e}")
-                        action = f"ADD {qty} @ ~${price:.2f} (up {plpc*100:.1f}%) trail={trail}%"
-                    else:
-                        action = f"[DRY] ADD {qty} @ ~${price:.2f} (up {plpc*100:.1f}%)"
-                    rows.append([sym, f"T{tier}", "ADD", "6%", action])
 
     print("\n" + "="*80)
     print(tabulate(rows, headers=["Symbol","Tier","Signal","Size","Action"], tablefmt="simple"))
