@@ -14,6 +14,7 @@ def get_account():
 
 
 def get_bars(symbols, days=60):
+    """Hourly bars — responsive to intraday price moves for RSI signals."""
     end = datetime.now(timezone.utc)
     start = end - timedelta(days=days)
     request = StockBarsRequest(
@@ -28,16 +29,34 @@ def get_bars(symbols, days=60):
     for sym in symbols:
         try:
             bars = raw[sym]
-            rows = []
-            for bar in bars:
-                rows.append({
-                    "open": float(bar.open),
-                    "high": float(bar.high),
-                    "low": float(bar.low),
-                    "close": float(bar.close),
-                    "volume": float(bar.volume),
-                    "timestamp": bar.timestamp,
-                })
+            rows = [{"open": float(b.open), "high": float(b.high), "low": float(b.low),
+                     "close": float(b.close), "volume": float(b.volume), "timestamp": b.timestamp}
+                    for b in bars]
+            result[sym] = pd.DataFrame(rows)
+        except (KeyError, TypeError):
+            result[sym] = pd.DataFrame()
+    return result
+
+
+def get_daily_bars(symbols, days=60):
+    """Daily bars — used for regime detection and sector rotation."""
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=days)
+    request = StockBarsRequest(
+        symbol_or_symbols=symbols,
+        timeframe=TimeFrame.Day,
+        start=start,
+        end=end,
+        feed="iex",
+    )
+    raw = get_data_client().get_stock_bars(request)
+    result = {}
+    for sym in symbols:
+        try:
+            bars = raw[sym]
+            rows = [{"open": float(b.open), "high": float(b.high), "low": float(b.low),
+                     "close": float(b.close), "volume": float(b.volume), "timestamp": b.timestamp}
+                    for b in bars]
             result[sym] = pd.DataFrame(rows)
         except (KeyError, TypeError):
             result[sym] = pd.DataFrame()
