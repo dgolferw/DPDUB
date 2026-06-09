@@ -36,7 +36,7 @@ class RSIMeanReversion(BaseStrategy):
         if tier == 2: return config.TIER2_TRAILING_STOP
         return config.TIER3_TRAILING_STOP
 
-    def generate_signals(self, bars, regime="bull"):
+    def generate_signals(self, bars, regime="bull", momentum="neutral"):
         signals = {}
         for sym, df in bars.items():
             if df.empty or len(df) < self.period + 1:
@@ -48,10 +48,12 @@ class RSIMeanReversion(BaseStrategy):
             trail = self._get_trailing_stop(sym)
 
             if sym == "SQQQ":
-                if regime == "bear":
-                    signals[sym] = ("strong_buy", config.ORDER_FRACTION_TIER1_STRONG, config.TIER1_TRAILING_STOP)
+                if regime == "bear" or momentum == "declining":
+                    signals[sym] = ("strong_buy", 0.50, 8.0)
+                elif momentum in ("neutral", "rising"):
+                    signals[sym] = ("sell", config.ORDER_FRACTION, 8.0)
                 else:
-                    signals[sym] = ("hold", config.ORDER_FRACTION, trail)
+                    signals[sym] = ("hold", config.ORDER_FRACTION, 8.0)
                 continue
 
             if rsi < config.STRONG_OVERSOLD:
