@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import time
 from datetime import datetime
 import pytz
 from tabulate import tabulate
@@ -8,12 +9,13 @@ from utils.client import get_trading_client
 from utils.market import get_bars, get_positions, is_market_open
 from utils.orders import calc_order_qty, place_market_order, place_trailing_stop, cancel_open_trailing_stops, cancel_orphaned_trailing_stops
 from utils.sector import get_active_tickers
-from utils.regime import get_market_regime
+from utils.regime import get_market_regime, get_short_term_momentum
 from utils.risk import check_concentration, check_profit_taking, check_stop_losses
 from strategies.rsi import RSIMeanReversion
 
 ET = pytz.timezone("America/New_York")
 MIN_QTY = 0.001
+CASH_FLOOR_PCT = 0.10
 
 def in_buy_window():
     now = datetime.now(ET)
@@ -85,6 +87,7 @@ def audit_trailing_stops(positions):
 def run_strategy(tickers, dry_run=False):
     print("\n--- Pre-run checks ---")
     regime = get_market_regime()
+    momentum = get_short_term_momentum()
     stopped = []
 
     print("  Cancelling orphaned trailing stops...")
@@ -134,7 +137,6 @@ def run_strategy(tickers, dry_run=False):
             tickers.append(sym)
     print(f"  Trading {len(tickers)} tickers after sector filter")
 
-    # Only include real positions (not ghosts) when building signal universe
     all_syms = list(set(tickers) | set(real_positions.keys()))
     strategy = RSIMeanReversion(all_syms)
     bars = get_bars(all_syms, days=max(config.MA_LONG_WINDOW, config.RSI_PERIOD, config.VOLUME_MA_DAYS)+5)
@@ -143,6 +145,7 @@ def run_strategy(tickers, dry_run=False):
     account = get_trading_client().get_account()
     cash = float(account.cash)
     portfolio_value = float(account.portfolio_value)
+    cash_floor = portfolio_value * CASH_FLOOR_PCT
     rows = []
     placed = []
 
@@ -159,7 +162,11 @@ def run_strategy(tickers, dry_run=False):
                 qty = check_concentration(sym, qty, price, portfolio_value)
                 if qty > 0:
                     label = "STRONG BUY" if signal == "strong_buy" else "BUY"
-                    if not dry_run:
+                    if momentum == "declining" and signal != "strong_buy":
+                        action = f"[SKIP] {label} — market declining"
+                    elif cash <= cash_floor and signal != "strong_buy":
+                        action = f"[SKIP] {label} — cash floor"
+                    elif not dry_run:
                         place_market_order(sym, "buy", qty)
                         existing_pos = real_positions.get(sym)
                         stop_qty = int(float(existing_pos.qty)) if existing_pos else int(qty)
@@ -178,12 +185,10 @@ def run_strategy(tickers, dry_run=False):
     print("\n" + "="*80)
     print(tabulate(rows, headers=["Symbol","Tier","Signal","Size","Action"], tablefmt="simple"))
     print(f"\n  {len(placed)} order(s) placed." if placed else "\n  No orders placed.")
-    print(f"  Regime: {regime.upper()}  |  Cash remaining: ${cash:,.2f}")
+    print(f"  Regime: {regime.upper()}  |  Momentum: {momentum.upper()}  |  Cash remaining: ${cash:,.2f}")
 
-    # Audit: ensure every position has a trailing stop
     if not dry_run and placed:
         print("\n  Auditing trailing stops...")
-        import time
         time.sleep(2)
         audit_trailing_stops(get_positions())
 
