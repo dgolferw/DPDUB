@@ -48,7 +48,7 @@ def show_positions():
                      f"${float(p.market_value):,.2f}",
                      f"${float(p.unrealized_pl):,.2f}",
                      f"{float(p.unrealized_plpc)*100:.2f}%"])
-    print("\n" + "="*80 + "\n  OPEN POSITIONS\n" + "="*80)
+    print("\n" + "="*80 + "\n  OPEN POSITIONS\n" + "={*80)
     print(tabulate(rows, headers=["Symbol","Tier","Qty","Avg Cost","Price","Mkt Value","Unreal P&L","P&L %"], tablefmt="simple"))
 
 def show_status():
@@ -135,12 +135,14 @@ def run_strategy(tickers, dry_run=False):
     for sym in config.TIER1 + config.LEVERAGED_TICKERS:
         if sym not in tickers:
             tickers.append(sym)
+    if "SQQQ" not in tickers:
+        tickers.append("SQQQ")
     print(f"  Trading {len(tickers)} tickers after sector filter")
 
     all_syms = list(set(tickers) | set(real_positions.keys()))
     strategy = RSIMeanReversion(all_syms)
     bars = get_bars(all_syms, days=max(config.MA_LONG_WINDOW, config.RSI_PERIOD, config.VOLUME_MA_DAYS)+5)
-    signals = strategy.generate_signals(bars, regime=regime)
+    signals = strategy.generate_signals(bars, regime=regime, momentum=momentum)
 
     account = get_trading_client().get_account()
     cash = float(account.cash)
@@ -180,6 +182,29 @@ def run_strategy(tickers, dry_run=False):
                         placed.append(sym)
                     else:
                         action = f"[DRY] {label} {qty} @ ~${price:.2f} trail={trail}%"
+        elif signal == "sell":
+            pos = real_positions.get(sym)
+            if pos:
+                qty = float(pos.qty)
+                sell_qty = qty if sym == "SQQQ" else round(qty * 0.5, 6)
+                remaining_qty = round(qty - sell_qty, 6)
+                if sell_qty >= MIN_QTY:
+                    label = "SELL ALL" if sym == "SQQQ" else "SELL HALF"
+                    if not dry_run:
+                        try:
+                            cancel_open_trailing_stops(sym)
+                            place_market_order(sym, "sell", sell_qty)
+                            if sym != "SQQQ" and int(remaining_qty) > 0:
+                                try:
+                                    place_trailing_stop(sym, int(remaining_qty), trail)
+                                except Exception as e:
+                                    print(f"  Trailing stop skipped for {sym}: {e}")
+                            action = f"{label} {sell_qty}"
+                            placed.append(sym)
+                        except Exception as e:
+                            print(f"  Sell skipped for {sym}: {e}")
+                    else:
+                        action = f"[DRY] {label} {sell_qty}"
         rows.append([sym, f"T{tier}", signal.upper(), f"{fraction*100:.0f}%", action])
 
     print("\n" + "="*80)
