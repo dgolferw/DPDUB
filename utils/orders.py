@@ -46,15 +46,21 @@ def cancel_orphaned_trailing_stops(position_symbols):
 
 def place_trailing_stop(symbol, qty, trail_pct=config.TRAILING_STOP_PCT):
     cancel_open_trailing_stops(symbol)
-    order = TrailingStopOrderRequest(
-        symbol=symbol,
-        qty=round(qty, 6),
-        side=OrderSide.SELL,
-        time_in_force=TimeInForce.GTC,
-        trail_percent=trail_pct,
-    )
-    result = get_trading_client().submit_order(order)
-    return {"id": str(result.id), "symbol": symbol, "trail_pct": trail_pct}
+    for tif in [TimeInForce.GTC, TimeInForce.DAY]:
+        try:
+            order = TrailingStopOrderRequest(
+                symbol=symbol,
+                qty=round(qty, 6),
+                side=OrderSide.SELL,
+                time_in_force=tif,
+                trail_percent=trail_pct,
+            )
+            result = get_trading_client().submit_order(order)
+            return {"id": str(result.id), "symbol": symbol, "trail_pct": trail_pct}
+        except Exception as e:
+            if tif == TimeInForce.GTC:
+                continue
+            raise
 
 def calc_order_qty(cash, price, fraction=config.ORDER_FRACTION):
     return max(round((cash * fraction) / price, 6), 0)
