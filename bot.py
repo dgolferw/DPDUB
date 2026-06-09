@@ -15,7 +15,7 @@ from strategies.rsi import RSIMeanReversion
 
 ET = pytz.timezone("America/New_York")
 MIN_QTY = 0.001
-CASH_FLOOR_PCT = 0.10
+CASH_FLOOR_PCT = 0.05
 
 def in_buy_window():
     now = datetime.now(ET)
@@ -63,7 +63,6 @@ def _trail_pct(sym):
     return config.TIER3_TRAILING_STOP
 
 def audit_trailing_stops(positions):
-    """Ensure every real position has a full trailing stop covering all shares."""
     from alpaca.trading.requests import GetOrdersRequest
     from alpaca.trading.enums import QueryOrderStatus
     from utils.client import get_trading_client
@@ -83,6 +82,27 @@ def audit_trailing_stops(positions):
                 print(f"  Placed missing trailing stop for {sym} ({stop_qty} shares @ {_trail_pct(sym)}%)")
             except Exception as e:
                 print(f"  Trailing stop audit skipped for {sym}: {e}")
+
+def clear_losers_for_sqqq(real_positions, stopped, dry_run):
+    """When market is declining, sell all losing tech longs to fund SQQQ."""
+    cleared = []
+    for sym, pos in real_positions.items():
+        if sym in stopped or sym in ("SQQQ", "TQQQ", "INTC"):
+            continue
+        plpc = float(pos.unrealized_plpc)
+        if plpc < 0:
+            qty = float(pos.qty)
+            print(f"  CLEAR LOSER: {sym} ({plpc*100:.1f}%) — freeing capital for SQQQ")
+            if not dry_run:
+                try:
+                    cancel_open_trailing_stops(sym)
+                    place_market_order(sym, "sell", qty)
+                    cleared.append(sym)
+                except Exception as e:
+                    print(f"  Clear skipped for {sym}: {e}")
+            else:
+                cleared.append(sym)
+    return cleared
 
 def run_strategy(tickers, dry_run=False):
     print("\n--- Pre-run checks ---")
@@ -114,7 +134,15 @@ def run_strategy(tickers, dry_run=False):
     positions = get_positions()
     real_positions = {s: p for s, p in positions.items() if float(p.qty) >= MIN_QTY}
 
-    # Trim to MAX_POSITIONS — sell worst performers first
+    # When declining: sell all losers to fund SQQQ
+    if momentum == "declining" and not dry_run:
+        cleared = clear_losers_for_sqqq(real_positions, stopped, dry_run)
+        stopped.extend(cleared)
+        if cleared:
+            positions = get_positions()
+            real_positions = {s: p for s, p in positions.items() if float(p.qty) >= MIN_QTY}
+
+    # Trim to MAX_POSITIONS
     if not dry_run:
         if len(real_positions) > config.MAX_POSITIONS:
             excess = len(real_positions) - config.MAX_POSITIONS
@@ -129,15 +157,11 @@ def run_strategy(tickers, dry_run=False):
                 except Exception as e:
                     print(f"  TRIM skipped for {sym}: {e}")
 
-    print("  Fetching sector rotation...")
-    active = get_active_tickers()
-    tickers = [t for t in tickers if t in active] or tickers
-    for sym in config.TIER1 + config.LEVERAGED_TICKERS:
-        if sym not in tickers:
-            tickers.append(sym)
+    tickers = list(config.DEFAULT_TICKERS)
     if "SQQQ" not in tickers:
         tickers.append("SQQQ")
-    print(f"  Trading {len(tickers)} tickers after sector filter")
+    if "TQQQ" not in tickers:
+        tickers.append("TQQQ")
 
     all_syms = list(set(tickers) | set(real_positions.keys()))
     strategy = RSIMeanReversion(all_syms)
@@ -186,15 +210,15 @@ def run_strategy(tickers, dry_run=False):
             pos = real_positions.get(sym)
             if pos:
                 qty = float(pos.qty)
-                sell_qty = qty if sym == "SQQQ" else round(qty * 0.5, 6)
+                sell_qty = qty if sym in ("SQQQ", "TQQQ") else round(qty * 0.5, 6)
                 remaining_qty = round(qty - sell_qty, 6)
                 if sell_qty >= MIN_QTY:
-                    label = "SELL ALL" if sym == "SQQQ" else "SELL HALF"
+                    label = "SELL ALL" if sym in ("SQQQ", "TQQQ") else "SELL HALF"
                     if not dry_run:
                         try:
                             cancel_open_trailing_stops(sym)
                             place_market_order(sym, "sell", sell_qty)
-                            if sym != "SQQQ" and int(remaining_qty) > 0:
+                            if sym not in ("SQQQ", "TQQQ") and int(remaining_qty) > 0:
                                 try:
                                     place_trailing_stop(sym, int(remaining_qty), trail)
                                 except Exception as e:
