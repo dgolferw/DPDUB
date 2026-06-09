@@ -48,7 +48,7 @@ def show_positions():
                      f"${float(p.market_value):,.2f}",
                      f"${float(p.unrealized_pl):,.2f}",
                      f"{float(p.unrealized_plpc)*100:.2f}%"])
-    print("\n" + "="*80 + "\n  OPEN POSITIONS\n" + "={*80)
+        print("\n" + "="*80 + "\n  OPEN POSITIONS\n" + "="*80)
     print(tabulate(rows, headers=["Symbol","Tier","Qty","Avg Cost","Price","Mkt Value","Unreal P&L","P&L %"], tablefmt="simple"))
 
 def show_status():
