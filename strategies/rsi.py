@@ -65,6 +65,10 @@ class RSIMeanReversion(BaseStrategy):
                     signals[sym] = ("hold", config.ORDER_FRACTION, 8.0)
                 continue
 
+            if momentum == "declining":
+                signals[sym] = ("hold", config.ORDER_FRACTION, trail)
+                continue
+
             if rsi < config.STRONG_OVERSOLD:
                 signals[sym] = ("strong_buy", self._get_order_fraction(sym, rsi), trail)
             elif rsi < config.NORMAL_OVERSOLD:
