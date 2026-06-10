@@ -9,10 +9,13 @@ def get_market_regime():
         return "bull"
     close = df["close"].astype(float)
     current = float(close.iloc[-1])
+    ma20 = float(close.rolling(20).mean().iloc[-1])
     ma50 = float(close.rolling(config.MARKET_REGIME_MA).mean().iloc[-1])
-    regime = "bull" if current > ma50 else "bear"
-    pct = (current - ma50) / ma50 * 100
-    print(f"  Market Regime: {regime.upper()} (SPY ${current:.2f} vs 50MA ${ma50:.2f}, {pct:+.1f}%)")
+    # Bear if below either MA — faster response to real downturns
+    regime = "bear" if current < ma20 or current < ma50 else "bull"
+    pct50 = (current - ma50) / ma50 * 100
+    pct20 = (current - ma20) / ma20 * 100
+    print(f"  Market Regime: {regime.upper()} (SPY ${current:.2f} vs 20MA ${ma20:.2f} ({pct20:+.1f}%), 50MA ${ma50:.2f} ({pct50:+.1f}%))")
     return regime
 
 
