@@ -180,11 +180,10 @@ def run_strategy(tickers, dry_run=False):
             continue
         tier = 1 if sym in config.TIER1 else (2 if sym in config.TIER2 else 3)
         action = "-"
-               if signal in ("buy", "strong_buy"):
+        if signal in ("buy", "strong_buy"):
             df = bars.get(sym)
             if df is not None and not df.empty:
                 price = float(df["close"].iloc[-1])
-                # Skip if existing position already meets or exceeds target allocation
                 existing_pos = real_positions.get(sym)
                 if existing_pos:
                     current_alloc = float(existing_pos.market_value) / portfolio_value
@@ -200,7 +199,7 @@ def run_strategy(tickers, dry_run=False):
                         action = f"[SKIP] {label} — market declining"
                     elif cash <= cash_floor and signal != "strong_buy":
                         action = f"[SKIP] {label} — cash floor"
-                                        elif not dry_run:
+                    elif not dry_run:
                         place_market_order(sym, "buy", qty)
                         stop_qty = int(float(existing_pos.qty)) if existing_pos else int(qty)
                         if stop_qty > 0:
