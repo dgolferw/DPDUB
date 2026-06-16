@@ -10,16 +10,21 @@ if not API_KEY or not SECRET_KEY:
 # ---------------------------------------------------------------------------
 # Ticker universe — focused bull portfolio
 # ---------------------------------------------------------------------------
-DEFAULT_TICKERS = ["NVDA","AMD","ANET","INTC","AVGO","MSFT","TQQQ","GOOGL"]
-LEVERAGED_TICKERS = ["TQQQ"]
+DEFAULT_TICKERS = ["NVDA","AMD","ANET","INTC","AVGO","MSFT","TQQQ","SOXL","GOOGL"]
+LEVERAGED_TICKERS = ["TQQQ","SOXL"]
 DEFENSIVE_TICKERS = ["GLD","XOM","WMT","BRK.B"]
 
 # ---------------------------------------------------------------------------
 # Tier system
 # ---------------------------------------------------------------------------
 TIER1 = ["NVDA","AMD","ANET","INTC"]
-TIER2 = ["AVGO","MSFT","TQQQ","GOOGL"]
+TIER2 = ["AVGO","MSFT","TQQQ","SOXL","GOOGL"]
 TIER3 = ["SQQQ"]
+
+# ---------------------------------------------------------------------------
+# Leveraged satellite cap — prevents TQQQ/SOXL from dominating the book
+# ---------------------------------------------------------------------------
+LEVERAGED_SATELLITE_FRACTION = 0.15
 
 # ---------------------------------------------------------------------------
 # RSI parameters
