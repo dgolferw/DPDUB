@@ -87,7 +87,7 @@ def clear_losers_for_sqqq(real_positions, stopped, dry_run):
     """When market is declining, sell all losing tech longs to fund SQQQ."""
     cleared = []
     for sym, pos in real_positions.items():
-        if sym in stopped or sym in ("SQQQ", "TQQQ", "INTC"):
+        if sym in stopped or sym in ("SQQQ", "TQQQ", "SOXL", "INTC"):
             continue
         plpc = float(pos.unrealized_plpc)
         if plpc < 0:
@@ -162,6 +162,8 @@ def run_strategy(tickers, dry_run=False):
         tickers.append("SQQQ")
     if "TQQQ" not in tickers:
         tickers.append("TQQQ")
+    if "SOXL" not in tickers:
+        tickers.append("SOXL")
 
     all_syms = list(set(tickers) | set(real_positions.keys()))
     strategy = RSIMeanReversion(all_syms)
@@ -216,15 +218,15 @@ def run_strategy(tickers, dry_run=False):
             pos = real_positions.get(sym)
             if pos:
                 qty = float(pos.qty)
-                sell_qty = qty if sym in ("SQQQ", "TQQQ") else round(qty * 0.5, 6)
+                sell_qty = qty if sym in ("SQQQ", "TQQQ", "SOXL") else round(qty * 0.5, 6)
                 remaining_qty = round(qty - sell_qty, 6)
                 if sell_qty >= MIN_QTY:
-                    label = "SELL ALL" if sym in ("SQQQ", "TQQQ") else "SELL HALF"
+                    label = "SELL ALL" if sym in ("SQQQ", "TQQQ", "SOXL") else "SELL HALF"
                     if not dry_run:
                         try:
                             cancel_open_trailing_stops(sym)
                             place_market_order(sym, "sell", sell_qty)
-                            if sym not in ("SQQQ", "TQQQ") and int(remaining_qty) > 0:
+                            if sym not in ("SQQQ", "TQQQ", "SOXL") and int(remaining_qty) > 0:
                                 try:
                                     place_trailing_stop(sym, int(remaining_qty), trail)
                                 except Exception as e:
