@@ -49,16 +49,16 @@ class RSIMeanReversion(BaseStrategy):
 
             if sym == "SQQQ":
                 if regime == "bear" or momentum == "declining":
-                    signals[sym] = ("strong_buy", 0.60, 8.0)
+                    signals[sym] = ("strong_buy", config.LEVERAGED_SATELLITE_FRACTION, 8.0)
                 elif momentum in ("neutral", "rising"):
                     signals[sym] = ("sell", config.ORDER_FRACTION, 8.0)
                 else:
                     signals[sym] = ("hold", config.ORDER_FRACTION, 8.0)
                 continue
 
-            if sym == "TQQQ":
+            if sym in ("TQQQ", "SOXL"):
                 if momentum == "rising":
-                    signals[sym] = ("strong_buy", 0.60, 8.0)
+                    signals[sym] = ("strong_buy", config.LEVERAGED_SATELLITE_FRACTION, 8.0)
                 elif momentum == "declining":
                     signals[sym] = ("sell", config.ORDER_FRACTION, 8.0)
                 else:
